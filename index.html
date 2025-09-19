@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Game Asset CMS – Items / Animals / Hitboxes</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #121832;
+            --panel2: #0f1530;
+            --text: #e6ecff;
+            --muted: #a6b2d6;
+            --primary: #7aa2ff;
+            --accent: #7cffc4;
+            --danger: #ff7a7a;
+            --br: 16px;
+            --pad: 14px;
+            --gap: 12px;
+            --shadow: 0 8px 28px rgba(0, 0, 0, .45);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: radial-gradient(1200px 600px at 20% -10%, #1e274a, transparent 60%), radial-gradient(1000px 500px at 120% 10%, #1a2142, transparent 50%), var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans TC, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: linear-gradient(0deg, rgba(11, 16, 32, 0), rgba(11, 16, 32, .85)), var(--panel);
+            backdrop-filter: saturate(1.2) blur(8px);
+            border-bottom: 1px solid #1d2550
+        }
+
+        header .bar {
+            max-width: 1200px;
+            margin: auto;
+            padding: 10px 16px;
+            display: flex;
+            gap: 10px;
+            align-items: center
+        }
+
+        h1 {
+            font-size: 18px;
+            margin: 0 12px 0 0;
+            letter-spacing: .5px
+        }
+
+        .tag {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .wrap {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 16px 48px
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .tab-btn {
+            border: 1px solid #22306b;
+            background: linear-gradient(180deg, #1b2450, #141b3d);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 999px;
+            cursor: pointer
+        }
+
+        .tab-btn.active {
+            border-color: #3b55c8;
+            box-shadow: inset 0 0 0 1px #3b55c855
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 16px
+        }
+
+        @media (max-width:1000px) {
+            .grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .panel {
+            background: linear-gradient(180deg, var(--panel), var(--panel2));
+            border: 1px solid #1d2550;
+            border-radius: var(--br);
+            box-shadow: var(--shadow)
+        }
+
+        .panel h2 {
+            font-size: 16px;
+            margin: 0 0 12px;
+            color: #c9d5ff
+        }
+
+        .panel .head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px;
+            border-bottom: 1px solid #1d2550
+        }
+
+        .panel .body {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        .row>label {
+            min-width: 90px;
+            color: var(--muted)
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #27306b;
+            background: #0e1533;
+            color: var(--text)
+        }
+
+        textarea {
+            min-height: 80px
+        }
+
+        .btn {
+            padding: 9px 12px;
+            border-radius: 10px;
+            border: 1px solid #2742a2;
+            background: linear-gradient(180deg, #2541a0, #1a2e77);
+            color: white;
+            cursor: pointer
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .btn.secondary {
+            border-color: #2a355f;
+            background: linear-gradient(180deg, #1a224a, #141b34)
+        }
+
+        .btn.danger {
+            border-color: #5a2231;
+            background: linear-gradient(180deg, #7a273a, #541a28)
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px
+        }
+
+        .chip {
+            padding: 6px 9px;
+            border: 1px solid #2a3a80;
+            background: #121a3f;
+            border-radius: 999px;
+            font-size: 12px;
+            color: #cfe0ff
+        }
+
+        .list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px
+        }
+
+        .card {
+            background: #0e1533;
+            border: 1px solid #1f2755;
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            gap: 10px
+        }
+
+        .card img {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid #23306a
+        }
+
+        .card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px
+        }
+
+        .thumbs {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px
+        }
+
+        .thumbs img {
+            width: 52px;
+            height: 52px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #23306a;
+            background: #10183a
+        }
+
+        .terrain-item {
+            border: 1px solid #1f2755;
+            border-radius: 14px;
+            background: #0e1533;
+            box-shadow: var(--shadow);
+            padding: 0 12px 12px;
+            color: var(--text)
+        }
+
+        .terrain-item[open] {
+            border-color: #3b55c8;
+            background: linear-gradient(180deg, rgba(30, 40, 90, .45), rgba(12, 18, 46, .95)), #0e1533;
+        }
+
+        .terrain-summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 0;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .terrain-summary::after {
+            content: '\25BC';
+            font-size: 12px;
+            color: var(--muted);
+            transition: transform .2s ease;
+        }
+
+        .terrain-item[open] .terrain-summary::after {
+            transform: rotate(-180deg);
+        }
+
+        .terrain-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .terrain-summary .title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .terrain-summary .title {
+            font-size: 15px;
+        }
+
+        .terrain-summary .meta {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .terrain-body {
+            border-top: 1px solid #1d2550;
+            margin-top: 6px;
+            padding-top: 12px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .terrain-form {
+            display: grid;
+            gap: 8px;
+        }
+
+        .terrain-form .row {
+            display: grid;
+            grid-template-columns: 110px 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        @media (max-width:600px) {
+            .terrain-form .row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .terrain-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .terrain-images {
+            display: grid;
+            gap: 10px;
+        }
+
+        .terrain-image-card {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 12px;
+            padding: 10px;
+            border: 1px solid #23306a;
+            border-radius: 12px;
+            background: #0a1232;
+        }
+
+        .terrain-image-card a {
+            display: inline-flex;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #23306a;
+        }
+
+        .terrain-image-card img {
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+        }
+
+        .terrain-image-info {
+            display: grid;
+            gap: 6px;
+        }
+
+        .terrain-image-info .meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .terrain-image-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .terrain-image-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .terrain-image-toggle input {
+            margin: 0;
+        }
+
+        .checklist {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .checklist label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid #23306a;
+            background: #111a3a;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .checklist input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .item-group {
+            border: 1px solid #1f2755;
+            border-radius: 14px;
+            background: #0e1533;
+            box-shadow: var(--shadow);
+            padding: 0 12px 12px;
+            color: var(--text);
+        }
+
+        .item-group[open] {
+            border-color: #7aa2ff;
+            background: linear-gradient(180deg, rgba(40, 60, 110, .35), rgba(12, 18, 46, .95)), #0e1533;
+        }
+
+        .item-summary {
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 0;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .item-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .item-summary::after {
+            content: '\25BC';
+            font-size: 12px;
+            color: var(--muted);
+            transition: transform .2s ease;
+        }
+
+        .item-group[open] .item-summary::after {
+            transform: rotate(-180deg);
+        }
+
+        .item-summary .meta {
+            display: flex;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .item-entries {
+            display: grid;
+            gap: 10px;
+        }
+
+        .item-card {
+            border: 1px solid #23306a;
+            border-radius: 12px;
+            background: #0a1232;
+            padding: 0 12px 12px;
+        }
+
+        .item-card[open] {
+            border-color: #7aa2ff;
+        }
+
+        .item-card summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 0;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .item-card summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .item-card summary::after {
+            content: '\25B6';
+            font-size: 12px;
+            color: var(--muted);
+            transition: transform .2s ease;
+        }
+
+        .item-card[open] summary::after {
+            transform: rotate(90deg);
+        }
+
+        .item-body {
+            border-top: 1px solid #1d2550;
+            padding-top: 12px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .item-form {
+            display: grid;
+            gap: 10px;
+        }
+
+        .item-form .row {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        @media (max-width:600px) {
+            .item-form .row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .item-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .item-image-preview {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .item-image-preview img {
+            width: 96px;
+            height: 96px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 1px solid #23306a;
+            background: #0a1232;
+        }
+
+        .item-image-meta {
+            display: grid;
+            gap: 6px;
+        }
+
+        .terrain-empty {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .card .title {
+            font-weight: 600
+        }
+
+        .kvs {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 6px;
+            font-size: 13px;
+            color: #cfd8ff
+        }
+
+        .kvs div:nth-child(odd) {
+            color: #91a2ff
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #2a3a80;
+            background: #121a3f;
+            border-radius: 999px;
+            padding: 6px 9px
+        }
+
+        .small {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        canvas {
+            background: #0a1130;
+            border: 1px dashed #32408b;
+            border-radius: 10px;
+            max-width: 100%;
+            touch-action: none
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .note {
+            font-size: 12px;
+            color: #9fb4ff
+        }
+
+        .footer {
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="bar">
+            <h1>Game Asset CMS</h1>
+            <div class="tag">Items / Animals (Animations) / Entities (Hitboxes) / Terrains – 本機儲存、可匯入匯出</div>
+            <div style="flex:1"></div>
+            <button class="btn secondary" id="btnReset">重置</button>
+            <label class="btn secondary" for="importJson">匯入 JSON</label>
+            <input id="importJson" type="file" accept="application/json" style="display:none" />
+            <button class="btn" id="btnExport">匯出 JSON</button>
+        </div>
+    </header>
+
+    <div class="wrap">
+        <div class="tabs" id="tabs"></div>
+
+        <!-- Terrains -->
+        <section class="panel" data-tab="terrains">
+            <div class="head">
+                <h2>Terrains 地形管理</h2>
+            </div>
+            <div class="body">
+                <div class="grid">
+                    <div>
+                        <div class="row"><label>名稱</label><input id="tName" type="text" placeholder="例：草地" /></div>
+                        <div class="row"><label>Tag</label><input id="tTag" type="text"
+                                placeholder="例：walkable / slippery / lava" /></div>
+                        <div class="row"><label>圖片</label><input id="tImages" type="file" accept="image/*" multiple />
+                        </div>
+                        <div class="row"><button id="addTerrain" class="btn">新增地形</button></div>
+                    </div>
+                    <div>
+                        <div class="list" id="terrainList"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Items -->
+        <section class="panel" data-tab="items">
+            <div class="head">
+                <h2>Items 物品 → 可放置地形</h2>
+            </div>
+            <div class="body">
+                <div class="grid">
+                    <div>
+                        <div class="row"><label>名稱</label><input id="iName" type="text" placeholder="紅寶石礦 / 木箱 / 陷阱" />
+                        </div>
+                        <div class="row"><label>分類</label>
+                            <select id="iCategory"></select>
+                        </div>
+                        <div class="row"><label>圖片</label><input id="iIcon" type="file" accept="image/*" /></div>
+                        <div class="row"><label>適用地形</label>
+                            <div id="iTerrainChecks" class="checklist"></div>
+                        </div>
+                        <div class="row"><label>備註</label><textarea id="iNote" placeholder="限制、互動規則等…"></textarea></div>
+                        <div class="row"><button id="addItem" class="btn">新增物品</button></div>
+                    </div>
+                    <div>
+                        <div class="list" id="itemList"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Animals -->
+        <section class="panel" data-tab="animals">
+            <div class="head">
+                <h2>Animals 動物 → 動畫列表</h2>
+            </div>
+            <div class="body">
+                <div class="grid">
+                    <div>
+                        <div class="row"><label>名稱</label><input id="aName" type="text" placeholder="小安德 / 史萊姆" /></div>
+                        <div class="row"><label>預覽圖</label><input id="aPreview" type="file" accept="image/*" /></div>
+                        <div class="row"><label>動畫名稱</label><input id="clipName" type="text"
+                                placeholder="idle / walk / attack" /></div>
+                        <div class="row"><label>FPS</label><input id="clipFps" type="number" value="6" min="1"
+                                max="60" /></div>
+                        <div class="row"><label>動畫幀圖片</label><input id="clipFrames" type="file" accept="image/*"
+                                multiple /></div>
+                        <div class="row"><label>生成地形</label>
+                            <div id="aTerrainChecks" class="chips"></div>
+                        </div>
+                        <div class="toolbar">
+                            <button id="addClip" class="btn secondary">加入動畫到此動物</button>
+                            <button id="addAnimal" class="btn">新增/更新 動物</button>
+                        </div>
+                        <div class="note">提示：可以先選擇預覽圖與動畫幀，再按「加入動畫」；重複加入多個 clip。</div>
+                    </div>
+                    <div>
+                        <div class="list" id="animalList"></div>
+                        <div class="panel" style="margin-top:12px">
+                            <div class="head">
+                                <h2>動畫即時預覽</h2>
+                            </div>
+                            <div class="body">
+                                <canvas id="animCanvas" width="320" height="240"></canvas>
+                                <div class="row">
+                                    <label>選擇動物</label>
+                                    <select id="previewAnimal"></select>
+                                </div>
+                                <div class="row">
+                                    <label>選擇動畫</label>
+                                    <select id="previewClip"></select>
+                                </div>
+                                <div class="row">
+                                    <label>速度倍率</label>
+                                    <input id="previewSpeed" type="number" value="1" step="0.1" min="0.1" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Entities / Hitboxes -->
+        <section class="panel" data-tab="entities">
+            <div class="head">
+                <h2>Entities 生物 → 碰撞箱（矩形）</h2>
+            </div>
+            <div class="body">
+                <div class="grid">
+                    <div>
+                        <div class="row"><label>名稱</label><input id="eName" type="text" placeholder="敵人或可互動物件名稱" />
+                        </div>
+                        <div class="row"><label>底圖</label><input id="eImage" type="file" accept="image/*" /></div>
+                        <div class="toolbar">
+                            <span class="pill">Shift+左鍵拖曳：新增碰撞箱</span>
+                            <span class="pill">右鍵：刪除此框</span>
+                            <span class="pill">拖曳角落：縮放</span>
+                            <button id="clearHitboxes" class="btn danger">清空所有框</button>
+                            <button id="saveEntity" class="btn">新增/更新 生物</button>
+                        </div>
+                        <canvas id="hitCanvas" width="420" height="320"></canvas>
+                        <div class="small">儲存為 0..1 正規化座標（與圖片無關比例，可安全匯出到遊戲）</div>
+                    </div>
+                    <div>
+                        <div class="list" id="entityList"></div>
+                        <div class="panel" style="margin-top:12px">
+                            <div class="head">
+                                <h2>目前碰撞框</h2>
+                            </div>
+                            <div class="body" id="hitList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <template id="tpl-card">
+        <div class="card">
+            <img />
+            <div class="card-body" style="flex:1">
+                <div class="title"></div>
+                <div class="kvs"></div>
+            </div>
+            <div class="card-actions">
+                <button class="btn secondary edit">編輯</button>
+                <button class="btn danger del">刪除</button>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        // ----------------------------- Data Types -----------------------------
+        const LS_KEY = 'asset-cms-v1';
+        const uid = () => Math.random().toString(36).slice(2, 9);
+        const terrainApiUrl = 'terrain_api.php';
+        const itemApiUrl = 'item_api.php';
+        let pendingOpenItemId = null;
+        let pendingOpenCategoryId = null;
+        const defaultItemCategories = [
+            { id: 'decor', label: '裝飾' },
+            { id: 'interactive', label: '可互動' },
+            { id: 'building', label: '建材' },
+            { id: 'drop', label: '掉落物' },
+            { id: 'resource', label: '素材' },
+            { id: 'consumable', label: '消耗品' },
+            { id: 'crop', label: '農作物' },
+            { id: 'mineral', label: '礦物' },
+            { id: 'tree', label: '樹木' },
+            { id: 'animal', label: '生物' }
+        ];
+
+        const emptyProject = () => ({
+            meta: { name: 'My Game Assets', version: '1.0.0', updatedAt: new Date().toISOString() },
+            terrains: [
+                { id: 'grass', name: '草地', tag: 'walkable' },
+                { id: 'sand', name: '沙地', tag: 'walkable' },
+                { id: 'snow', name: '雪地', tag: 'slippery' },
+                { id: 'stone', name: '岩地', tag: 'walkable' },
+                { id: 'water', name: '水域', tag: 'swim' },
+            ],
+            itemCategories: defaultItemCategories.slice(),
+            items: [],
+            animals: [],
+            entities: [],
+        });
+
+        let project = JSON.parse(localStorage.getItem(LS_KEY) || 'null') || emptyProject();
+        if (!Array.isArray(project.itemCategories) || project.itemCategories.length === 0) {
+            project.itemCategories = defaultItemCategories.slice();
+        }
+        if (!Array.isArray(project.items)) {
+            project.items = [];
+        }
+        const saveProject = () => { project.meta.updatedAt = new Date().toISOString(); localStorage.setItem(LS_KEY, JSON.stringify(project)); renderAll(); };
+
+        // ----------------------------- Tabs -----------------------------
+        const tabsEl = document.getElementById('tabs');
+        const sections = Array.from(document.querySelectorAll('[data-tab]'));
+        const tabNames = ['terrains', 'items', 'animals', 'entities'];
+        let currentTab = localStorage.getItem('asset-cms-tab') || 'terrains';
+        const switchTab = (name) => {
+            currentTab = name; localStorage.setItem('asset-cms-tab', name);
+            sections.forEach(sec => sec.style.display = sec.getAttribute('data-tab') === name ? 'block' : 'none');
+            Array.from(tabsEl.children).forEach(btn => btn.classList.toggle('active', btn.dataset.name === name));
+        };
+        tabNames.forEach(n => {
+            const b = document.createElement('button'); b.className = 'tab-btn'; b.dataset.name = n; b.textContent = n.toUpperCase(); b.onclick = () => switchTab(n); tabsEl.appendChild(b);
+        });
+
+        // ----------------------------- Terrains -----------------------------
+        const tName = document.getElementById('tName');
+        const tTag = document.getElementById('tTag');
+        const tImages = document.getElementById('tImages');
+        const addTerrain = document.getElementById('addTerrain');
+        const terrainList = document.getElementById('terrainList');
+
+        addTerrain.onclick = async () => {
+            const name = tName.value.trim();
+            if (!name) return alert('請輸入名稱');
+            const originalText = addTerrain.textContent;
+            const tag = tTag.value.trim();
+            const files = Array.from(tImages.files || []);
+            const formData = new FormData();
+            formData.append('action', 'create');
+            formData.append('name', name);
+            formData.append('tag', tag);
+            files.forEach(file => formData.append('images[]', file));
+            addTerrain.disabled = true;
+            addTerrain.textContent = '儲存中...';
+            try {
+                const res = await fetch(terrainApiUrl, { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!res.ok || data.status !== 'ok') {
+                    throw new Error(data.message || '新增地形失敗');
+                }
+                project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                tName.value = '';
+                tTag.value = '';
+                tImages.value = '';
+                saveProject();
+            } catch (err) {
+                console.error('Failed to create terrain', err);
+                alert('新增地形失敗：' + (err.message || '發生未知錯誤'));
+            } finally {
+                addTerrain.disabled = false;
+                addTerrain.textContent = originalText;
+            }
+        };
+
+        function renderTerrains() {
+            const previouslyOpen = new Set(Array.from(terrainList.querySelectorAll('.terrain-item[open]')).map(el => el.dataset.terrainId));
+            terrainList.innerHTML = '';
+            (project.terrains || []).forEach(tr => {
+                const tagText = tr.tag || '-';
+                const images = Array.isArray(tr.images) ? tr.images : [];
+                const imageCount = images.length;
+
+                const details = document.createElement('details');
+                details.className = 'terrain-item';
+                details.dataset.terrainId = tr.id;
+                if (previouslyOpen.has(tr.id)) details.open = true;
+
+                const summary = document.createElement('summary');
+                summary.className = 'terrain-summary';
+                summary.innerHTML = `
+                    <div class="title-wrap">
+                        <span class="title">${tr.name}</span>
+                        <span class="pill">Tag: ${tagText}</span>
+                    </div>
+                    <div class="meta">
+                        <span>ID: ${tr.id}</span>
+                        <span>圖片 ${imageCount} 張</span>
+                    </div>`;
+                details.appendChild(summary);
+
+                const body = document.createElement('div');
+                body.className = 'terrain-body';
+
+                // Editable form for name/tag
+                const form = document.createElement('div');
+                form.className = 'terrain-form';
+
+                const nameRow = document.createElement('div'); nameRow.className = 'row';
+                const nameLabel = document.createElement('label'); nameLabel.textContent = '名稱';
+                const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.value = tr.name;
+                nameRow.appendChild(nameLabel); nameRow.appendChild(nameInput);
+
+                const tagRow = document.createElement('div'); tagRow.className = 'row';
+                const tagLabel = document.createElement('label'); tagLabel.textContent = 'Tag';
+                const tagInput = document.createElement('input'); tagInput.type = 'text'; tagInput.value = tr.tag || '';
+                tagRow.appendChild(tagLabel); tagRow.appendChild(tagInput);
+
+                form.appendChild(nameRow);
+                form.appendChild(tagRow);
+
+                const formActions = document.createElement('div'); formActions.className = 'terrain-actions';
+                const saveBtn = document.createElement('button'); saveBtn.className = 'btn'; saveBtn.textContent = '儲存變更';
+                const addImageBtn = document.createElement('button'); addImageBtn.className = 'btn secondary'; addImageBtn.textContent = '新增圖片';
+                const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn danger'; deleteBtn.textContent = '刪除此地形';
+                formActions.append(saveBtn, addImageBtn, deleteBtn);
+                form.appendChild(formActions);
+
+                body.appendChild(form);
+
+                // Image gallery
+                if (imageCount === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'terrain-empty';
+                    empty.textContent = '尚未上傳圖片';
+                    body.appendChild(empty);
+                } else {
+                    const imagesContainer = document.createElement('div');
+                    imagesContainer.className = 'terrain-images';
+                    images.forEach(img => {
+                        if (!img || !img.path) return;
+                        const card = document.createElement('div');
+                        card.className = 'terrain-image-card';
+
+                        const link = document.createElement('a');
+                        link.href = img.path;
+                        link.target = '_blank';
+                        const imageEl = document.createElement('img');
+                        imageEl.src = img.path;
+                        imageEl.alt = `${tr.name} 圖片`;
+                        link.appendChild(imageEl);
+                        card.appendChild(link);
+
+                        const info = document.createElement('div');
+                        info.className = 'terrain-image-info';
+                        const labelInput = document.createElement('input');
+                        labelInput.type = 'text';
+                        labelInput.value = (img.label && img.label.trim()) || (img.filename ? img.filename.replace(/\.[^/.]+$/, '') : '');
+                        labelInput.placeholder = '顯示名稱';
+                        info.appendChild(labelInput);
+
+                        const renameToggle = document.createElement('label');
+                        renameToggle.className = 'terrain-image-toggle';
+                        const renameCheckbox = document.createElement('input');
+                        renameCheckbox.type = 'checkbox';
+                        renameToggle.appendChild(renameCheckbox);
+                        renameToggle.append(' 同步修改檔案名稱');
+                        info.appendChild(renameToggle);
+
+                        const meta = document.createElement('div');
+                        meta.className = 'meta';
+                        const uploadedAt = img.uploadedAt ? new Date(img.uploadedAt).toLocaleString() : '';
+                        meta.textContent = `檔案: ${img.filename || '未知'}${uploadedAt ? `｜上傳：${uploadedAt}` : ''}`;
+                        info.appendChild(meta);
+
+                        const imgActions = document.createElement('div');
+                        imgActions.className = 'terrain-image-actions';
+                        const renameBtn = document.createElement('button');
+                        renameBtn.className = 'btn secondary';
+                        renameBtn.textContent = '更新名稱';
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'btn danger';
+                        removeBtn.textContent = '刪除此圖片';
+                        imgActions.append(renameBtn, removeBtn);
+                        info.appendChild(imgActions);
+
+                        card.appendChild(info);
+                        imagesContainer.appendChild(card);
+
+                        renameBtn.onclick = async (e) => {
+                            e.preventDefault();
+                            const newLabel = labelInput.value.trim();
+                            if (newLabel === '') {
+                                return alert('名稱不可為空');
+                            }
+                            const original = renameBtn.textContent;
+                            renameBtn.disabled = true;
+                            renameBtn.textContent = '更新中...';
+                            const formData = new FormData();
+                            formData.append('action', 'update');
+                            formData.append('id', tr.id);
+                            formData.append('name', nameInput.value.trim() || tr.name);
+                            formData.append('tag', tagInput.value.trim());
+                            formData.append('renameImages', JSON.stringify([
+                                { filename: img.filename, label: newLabel, renameFile: renameCheckbox.checked }
+                            ]));
+                            try {
+                                const res = await fetch(terrainApiUrl, { method: 'POST', body: formData });
+                                const data = await res.json();
+                                if (!res.ok || data.status !== 'ok') throw new Error(data.message || '更新失敗');
+                                project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                                saveProject();
+                            } catch (err) {
+                                console.error('Failed to rename image', err);
+                                alert('更新圖片名稱失敗：' + (err.message || '未知錯誤'));
+                            } finally {
+                                renameBtn.disabled = false;
+                                renameBtn.textContent = original;
+                            }
+                        };
+
+                        removeBtn.onclick = async (e) => {
+                            e.preventDefault();
+                            if (!confirm('確定刪除此圖片？檔案將被移除。')) return;
+                            const original = removeBtn.textContent;
+                            removeBtn.disabled = true;
+                            removeBtn.textContent = '刪除中...';
+                            const formData = new FormData();
+                            formData.append('action', 'update');
+                            formData.append('id', tr.id);
+                            formData.append('name', nameInput.value.trim() || tr.name);
+                            formData.append('tag', tagInput.value.trim());
+                            formData.append('removeImages', JSON.stringify([img.filename]));
+                            try {
+                                const res = await fetch(terrainApiUrl, { method: 'POST', body: formData });
+                                const data = await res.json();
+                                if (!res.ok || data.status !== 'ok') throw new Error(data.message || '刪除失敗');
+                                project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                                saveProject();
+                            } catch (err) {
+                                console.error('Failed to delete image', err);
+                                alert('刪除圖片失敗：' + (err.message || '未知錯誤'));
+                            } finally {
+                                removeBtn.disabled = false;
+                                removeBtn.textContent = original;
+                            }
+                        };
+                    });
+                    body.appendChild(imagesContainer);
+                }
+
+                details.appendChild(body);
+
+                // Button behaviors
+                saveBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    const newName = nameInput.value.trim();
+                    if (newName === '') return alert('地形名稱不可為空');
+                    const original = saveBtn.textContent;
+                    saveBtn.disabled = true;
+                    saveBtn.textContent = '儲存中...';
+                    const formData = new FormData();
+                    formData.append('action', 'update');
+                    formData.append('id', tr.id);
+                    formData.append('name', newName);
+                    formData.append('tag', tagInput.value.trim());
+                    try {
+                        const res = await fetch(terrainApiUrl, { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (!res.ok || data.status !== 'ok') throw new Error(data.message || '儲存失敗');
+                        project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                        saveProject();
+                    } catch (err) {
+                        console.error('Failed to update terrain', err);
+                        alert('更新地形失敗：' + (err.message || '發生未知錯誤'));
+                    } finally {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = original;
+                    }
+                };
+
+                addImageBtn.onclick = () => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.multiple = true;
+                    input.onchange = async () => {
+                        const files = Array.from(input.files || []);
+                        if (files.length === 0) return;
+                        const original = addImageBtn.textContent;
+                        addImageBtn.disabled = true;
+                        addImageBtn.textContent = '上傳中...';
+                        const formData = new FormData();
+                        formData.append('action', 'update');
+                        formData.append('id', tr.id);
+                        formData.append('name', nameInput.value.trim() || tr.name);
+                        formData.append('tag', tagInput.value.trim());
+                        files.forEach(file => formData.append('images[]', file));
+                        try {
+                            const res = await fetch(terrainApiUrl, { method: 'POST', body: formData });
+                            const data = await res.json();
+                            if (!res.ok || data.status !== 'ok') throw new Error(data.message || '新增圖片失敗');
+                            project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                            saveProject();
+                            details.open = true;
+                        } catch (err) {
+                            console.error('Failed to append images', err);
+                            alert('新增圖片失敗：' + (err.message || '發生未知錯誤'));
+                        } finally {
+                            addImageBtn.disabled = false;
+                            addImageBtn.textContent = original;
+                            input.value = '';
+                        }
+                    };
+                    input.click();
+                };
+
+                deleteBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    if (!confirm('刪除此地形？已綁定的 Items / Animals 會保留其 ID。')) return;
+                    const original = deleteBtn.textContent;
+                    deleteBtn.disabled = true;
+                    deleteBtn.textContent = '刪除中...';
+                    const formData = new FormData();
+                    formData.append('action', 'delete');
+                    formData.append('id', tr.id);
+                    try {
+                        const res = await fetch(terrainApiUrl, { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (!res.ok || data.status !== 'ok') throw new Error(data.message || '刪除地形失敗');
+                        project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                        (project.items || []).forEach(it => {
+                            if (!Array.isArray(it.terrains)) return;
+                            it.terrains = it.terrains.filter(id => id !== tr.id);
+                        });
+                        (project.animals || []).forEach(an => {
+                            if (!Array.isArray(an.spawnTerrains)) return;
+                            an.spawnTerrains = an.spawnTerrains.filter(id => id !== tr.id);
+                        });
+                        saveProject();
+                    } catch (err) {
+                        console.error('Failed to delete terrain', err);
+                        alert('刪除地形失敗：' + (err.message || '發生未知錯誤'));
+                    } finally {
+                        deleteBtn.disabled = false;
+                        deleteBtn.textContent = original;
+                    }
+                };
+
+                terrainList.appendChild(details);
+            });
+            renderItemTerrainChecks();
+            renderAnimalTerrainChecks();
+        }
+
+        function populateTerrainChecklist(container, selected = []) {
+            container.innerHTML = '';
+            const selectedSet = new Set(selected);
+            (project.terrains || []).forEach(tr => {
+                const label = document.createElement('label');
+                const ck = document.createElement('input');
+                ck.type = 'checkbox';
+                ck.dataset.tid = tr.id;
+                ck.checked = selectedSet.has(tr.id);
+                label.appendChild(ck);
+                label.append(' ' + tr.name);
+                container.appendChild(label);
+            });
+        }
+
+        function renderItemTerrainChecks() {
+            const wrap = document.getElementById('iTerrainChecks');
+            populateTerrainChecklist(wrap, []);
+        }
+
+        function renderAnimalTerrainChecks() {
+            const wrap = document.getElementById('aTerrainChecks');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            (project.terrains || []).forEach(tr => {
+                const id = 'achk_' + tr.id;
+                const label = document.createElement('label');
+                label.className = 'pill';
+                label.textContent = tr.name;
+                label.style.cursor = 'pointer';
+                label.htmlFor = id;
+                const ck = document.createElement('input');
+                ck.type = 'checkbox';
+                ck.id = id;
+                ck.dataset.tid = tr.id;
+                ck.style.marginRight = '6px';
+                const holder = document.createElement('div');
+                holder.className = 'row';
+                holder.appendChild(ck);
+                holder.appendChild(label);
+                wrap.appendChild(holder);
+            });
+        }
+
+        async function syncTerrainsFromServer() {
+            try {
+                const res = await fetch(`${terrainApiUrl}?_=${Date.now()}`);
+                if (!res.ok) throw new Error('網路錯誤');
+                const data = await res.json();
+                if (data.status !== 'ok' || !Array.isArray(data.terrains)) {
+                    throw new Error(data.message || '資料格式錯誤');
+                }
+                project.terrains = data.terrains;
+                saveProject();
+            } catch (err) {
+                console.warn('同步地形資料失敗', err);
+            }
+        }
+
+        async function syncItemsFromServer() {
+            try {
+                const res = await fetch(`${itemApiUrl}?_=${Date.now()}`);
+                if (!res.ok) throw new Error('網路錯誤');
+                const data = await res.json();
+                if (data.status !== 'ok' || !Array.isArray(data.items)) {
+                    throw new Error(data.message || '資料格式錯誤');
+                }
+                updateItemsState(data.items, data.categories);
+            } catch (err) {
+                console.warn('同步物品資料失敗', err);
+            }
+        }
+
+        // ----------------------------- Items -----------------------------
+        const iName = document.getElementById('iName');
+        const iCategory = document.getElementById('iCategory');
+        const iIcon = document.getElementById('iIcon');
+        const iNote = document.getElementById('iNote');
+        const addItem = document.getElementById('addItem');
+        const itemList = document.getElementById('itemList');
+
+        async function fileToDataUrl(file) {
+            return await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
+        }
+
+        function ensureItemCategories(categories) {
+            if (Array.isArray(categories) && categories.length > 0) {
+                project.itemCategories = categories;
+            } else if (!Array.isArray(project.itemCategories) || project.itemCategories.length === 0) {
+                project.itemCategories = defaultItemCategories.slice();
+            }
+        }
+
+        function updateItemsState(items, categories) {
+            project.items = Array.isArray(items) ? items : [];
+            ensureItemCategories(categories);
+            saveProject();
+        }
+
+        function renderItemCategoryOptions() {
+            if (!iCategory) return;
+            const current = iCategory.value;
+            iCategory.innerHTML = '';
+            ensureItemCategories(project.itemCategories);
+            (project.itemCategories || []).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.label;
+                iCategory.appendChild(opt);
+            });
+            if (current && Array.from(iCategory.options).some(opt => opt.value === current)) {
+                iCategory.value = current;
+            } else if (iCategory.options.length > 0 && !iCategory.value) {
+                iCategory.value = iCategory.options[0].value;
+            }
+        }
+
+        addItem.onclick = async () => {
+            const name = iName.value.trim();
+            if (!name) return alert('請輸入名稱');
+            const categoryId = iCategory.value || (project.itemCategories?.[0]?.id ?? 'decor');
+            const terrains = Array.from(document.querySelectorAll('#iTerrainChecks input[type=checkbox]:checked')).map(x => x.dataset.tid);
+            const notes = iNote.value.trim();
+
+            const originalText = addItem.textContent;
+            addItem.disabled = true;
+            addItem.textContent = '儲存中...';
+
+            const formData = new FormData();
+            formData.append('action', 'create');
+            formData.append('name', name);
+            formData.append('categoryId', categoryId);
+            formData.append('notes', notes);
+            formData.append('terrains', JSON.stringify(terrains));
+            if (iIcon.files && iIcon.files[0]) {
+                formData.append('image', iIcon.files[0]);
+            }
+
+            try {
+                const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
+
+                // 先讀文字（500 可能不是 JSON）
+                const raw = await res.text();
+
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}${raw ? ' | ' + raw : ''}`);
+                }
+
+                // 是 2xx 才 parse JSON
+                let data;
+                try { data = JSON.parse(raw); }
+                catch { throw new Error('後端不是有效的 JSON：' + raw.slice(0, 180)); }
+
+                if (data.status !== 'ok') {
+                    throw new Error(data.message || '新增物品失敗');
+                }
+
+                pendingOpenItemId = data.item?.id || null;
+                pendingOpenCategoryId = data.item?.categoryId || null;
+                updateItemsState(data.items, data.categories);
+
+                iName.value = '';
+                iNote.value = '';
+                iIcon.value = '';
+                populateTerrainChecklist(document.getElementById('iTerrainChecks'), []);
+            } catch (err) {
+                console.error('Failed to create item', err);
+                alert('新增物品失敗：' + (err.message || '發生未知錯誤'));
+            } finally {
+                addItem.disabled = false;
+                addItem.textContent = originalText;
+            }
+
+        };
+
+        function createCategorySelect(selectedId) {
+            const select = document.createElement('select');
+            ensureItemCategories(project.itemCategories);
+            (project.itemCategories || []).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.label;
+                if (cat.id === selectedId) opt.selected = true;
+                select.appendChild(opt);
+            });
+            return select;
+        }
+
+        function buildItemCard(item, openItems) {
+            const terrainsLookup = new Map((project.terrains || []).map(t => [t.id, t.name]));
+            const terrainNames = (item.terrains || []).map(id => terrainsLookup.get(id) || id);
+
+            const card = document.createElement('details');
+            card.className = 'item-card';
+            card.dataset.itemId = item.id;
+            if (openItems.has(item.id)) card.open = true;
+
+            const summary = document.createElement('summary');
+            const terrainText = terrainNames.length > 0 ? terrainNames.join(', ') : '-';
+            summary.innerHTML = `
+                <span>${item.name}</span>
+                <div class="meta"><span>ID: ${item.id}</span><span>地形：${terrainText}</span></div>`;
+            card.appendChild(summary);
+
+            const body = document.createElement('div');
+            body.className = 'item-body';
+
+            const form = document.createElement('div');
+            form.className = 'item-form';
+
+            const nameRow = document.createElement('div'); nameRow.className = 'row';
+            const nameLabel = document.createElement('label'); nameLabel.textContent = '名稱';
+            const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.value = item.name;
+            nameRow.appendChild(nameLabel); nameRow.appendChild(nameInput);
+
+            const catRow = document.createElement('div'); catRow.className = 'row';
+            const catLabel = document.createElement('label'); catLabel.textContent = '分類';
+            const catSelect = createCategorySelect(item.categoryId);
+            catRow.appendChild(catLabel); catRow.appendChild(catSelect);
+
+            const notesRow = document.createElement('div'); notesRow.className = 'row';
+            const notesLabel = document.createElement('label'); notesLabel.textContent = '備註';
+            const notesField = document.createElement('textarea'); notesField.value = item.notes || '';
+            notesRow.appendChild(notesLabel); notesRow.appendChild(notesField);
+
+            const terrainRow = document.createElement('div'); terrainRow.className = 'row';
+            const terrainLabel = document.createElement('label'); terrainLabel.textContent = '適用地形';
+            const terrainWrap = document.createElement('div'); terrainWrap.className = 'checklist';
+            populateTerrainChecklist(terrainWrap, item.terrains || []);
+            terrainRow.appendChild(terrainLabel); terrainRow.appendChild(terrainWrap);
+
+            const actionsRow = document.createElement('div'); actionsRow.className = 'item-actions';
+            const saveBtn = document.createElement('button'); saveBtn.className = 'btn'; saveBtn.textContent = '儲存變更';
+            const uploadBtn = document.createElement('button'); uploadBtn.className = 'btn secondary'; uploadBtn.textContent = '替換圖片';
+            const removeImageBtn = document.createElement('button'); removeImageBtn.className = 'btn secondary'; removeImageBtn.textContent = '移除圖片';
+            const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn danger'; deleteBtn.textContent = '刪除此物品';
+            actionsRow.append(saveBtn, uploadBtn, removeImageBtn, deleteBtn);
+
+            form.append(nameRow, catRow, notesRow, terrainRow, actionsRow);
+            body.appendChild(form);
+
+            const imageSection = document.createElement('div');
+            if (item.image) {
+                imageSection.className = 'item-image-preview';
+                const img = document.createElement('img');
+                img.src = item.image.path;
+                img.alt = item.name + ' 圖片';
+                imageSection.appendChild(img);
+
+                const metaWrap = document.createElement('div'); metaWrap.className = 'item-image-meta';
+                const labelInput = document.createElement('input');
+                labelInput.type = 'text';
+                labelInput.value = item.image.label || item.name;
+                labelInput.placeholder = '圖片顯示名稱';
+
+                const toggle = document.createElement('label'); toggle.className = 'terrain-image-toggle';
+                const renameCheckbox = document.createElement('input'); renameCheckbox.type = 'checkbox';
+                toggle.appendChild(renameCheckbox);
+                toggle.append(' 同步修改檔案名稱');
+
+                const meta = document.createElement('div'); meta.className = 'small';
+                const uploadedAt = item.image.uploadedAt ? new Date(item.image.uploadedAt).toLocaleString() : '';
+                meta.textContent = `檔案：${item.image.filename}${uploadedAt ? `｜上傳：${uploadedAt}` : ''}`;
+
+                const renameBtn = document.createElement('button'); renameBtn.className = 'btn secondary'; renameBtn.textContent = '更新圖片名稱';
+
+                metaWrap.append(labelInput, toggle, meta, renameBtn);
+                imageSection.appendChild(metaWrap);
+
+                renameBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    const label = labelInput.value.trim();
+                    if (label === '') return alert('名稱不可為空');
+                    const original = renameBtn.textContent;
+                    renameBtn.disabled = true;
+                    renameBtn.textContent = '更新中...';
+                    const formData = new FormData();
+                    formData.append('action', 'update');
+                    formData.append('id', item.id);
+                    formData.append('imageMeta', JSON.stringify({ label, renameFile: renameCheckbox.checked }));
+                    try {
+                        const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (!res.ok || data.status !== 'ok') throw new Error(data.message || '更新失敗');
+                        updateItemsState(data.items, data.categories);
+                    } catch (err) {
+                        console.error('Failed to rename item image', err);
+                        alert('更新圖片名稱失敗：' + (err.message || '未知錯誤'));
+                    } finally {
+                        renameBtn.disabled = false;
+                        renameBtn.textContent = original;
+                    }
+                };
+            } else {
+                imageSection.className = 'terrain-empty';
+                imageSection.textContent = '尚未上傳圖片';
+            }
+            body.appendChild(imageSection);
+
+            card.appendChild(body);
+
+            saveBtn.onclick = async (e) => {
+                e.preventDefault();
+                const newName = nameInput.value.trim();
+                if (newName === '') return alert('物品名稱不可為空');
+                const terrainsSelected = Array.from(terrainWrap.querySelectorAll('input[type=checkbox]:checked')).map(x => x.dataset.tid);
+                const original = saveBtn.textContent;
+                saveBtn.disabled = true;
+                saveBtn.textContent = '儲存中...';
+                const formData = new FormData();
+                formData.append('action', 'update');
+                formData.append('id', item.id);
+                formData.append('name', newName);
+                formData.append('categoryId', catSelect.value);
+                formData.append('notes', notesField.value.trim());
+                formData.append('terrains', JSON.stringify(terrainsSelected));
+                try {
+                    const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (!res.ok || data.status !== 'ok') throw new Error(data.message || '儲存失敗');
+                    updateItemsState(data.items, data.categories);
+                } catch (err) {
+                    console.error('Failed to update item', err);
+                    alert('更新物品失敗：' + (err.message || '未知錯誤'));
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = original;
+                }
+            };
+
+            uploadBtn.onclick = () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = async () => {
+                    if (!input.files || !input.files[0]) return;
+                    const original = uploadBtn.textContent;
+                    uploadBtn.disabled = true;
+                    uploadBtn.textContent = '上傳中...';
+                    const formData = new FormData();
+                    formData.append('action', 'update');
+                    formData.append('id', item.id);
+                    formData.append('image', input.files[0]);
+                    try {
+                        const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (!res.ok || data.status !== 'ok') throw new Error(data.message || '上傳失敗');
+                        updateItemsState(data.items, data.categories);
+                    } catch (err) {
+                        console.error('Failed to upload item image', err);
+                        alert('上傳圖片失敗：' + (err.message || '未知錯誤'));
+                    } finally {
+                        uploadBtn.disabled = false;
+                        uploadBtn.textContent = original;
+                        input.value = '';
+                    }
+                };
+                input.click();
+            };
+
+            removeImageBtn.disabled = !item.image;
+            removeImageBtn.onclick = async (e) => {
+                e.preventDefault();
+                if (!item.image) return;
+                if (!confirm('確定移除圖片？')) return;
+                const original = removeImageBtn.textContent;
+                removeImageBtn.disabled = true;
+                removeImageBtn.textContent = '處理中...';
+                const formData = new FormData();
+                formData.append('action', 'update');
+                formData.append('id', item.id);
+                formData.append('removeImage', 'true');
+                try {
+                    const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (!res.ok || data.status !== 'ok') throw new Error(data.message || '移除失敗');
+                    updateItemsState(data.items, data.categories);
+                } catch (err) {
+                    console.error('Failed to remove item image', err);
+                    alert('移除圖片失敗：' + (err.message || '未知錯誤'));
+                } finally {
+                    removeImageBtn.disabled = false;
+                    removeImageBtn.textContent = original;
+                }
+            };
+
+            deleteBtn.onclick = async (e) => {
+                e.preventDefault();
+                if (!confirm('刪除此物品？相關的圖片與資料將被移除。')) return;
+                const original = deleteBtn.textContent;
+                deleteBtn.disabled = true;
+                deleteBtn.textContent = '刪除中...';
+                const formData = new FormData();
+                formData.append('action', 'delete');
+                formData.append('id', item.id);
+                try {
+                    const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (!res.ok || data.status !== 'ok') throw new Error(data.message || '刪除失敗');
+                    updateItemsState(data.items, data.categories);
+                } catch (err) {
+                    console.error('Failed to delete item', err);
+                    alert('刪除物品失敗：' + (err.message || '未知錯誤'));
+                } finally {
+                    deleteBtn.disabled = false;
+                    deleteBtn.textContent = original;
+                }
+            };
+
+            return card;
+        }
+
+        function renderItems() {
+            if (!itemList) return;
+            renderItemCategoryOptions();
+            const openGroups = new Set(Array.from(itemList.querySelectorAll('.item-group[open]')).map(el => el.dataset.catId));
+            const openItems = new Set(Array.from(itemList.querySelectorAll('.item-card[open]')).map(el => el.dataset.itemId));
+
+            if (pendingOpenCategoryId) openGroups.add(pendingOpenCategoryId);
+            if (pendingOpenItemId) openItems.add(pendingOpenItemId);
+
+            itemList.innerHTML = '';
+
+            ensureItemCategories(project.itemCategories);
+            const categories = (project.itemCategories || []).slice();
+            const map = new Map(categories.map(cat => [cat.id, []]));
+            const uncategorized = [];
+
+            (project.items || []).forEach(item => {
+                if (map.has(item.categoryId)) {
+                    map.get(item.categoryId).push(item);
+                } else {
+                    uncategorized.push(item);
+                }
+            });
+
+            const buildGroup = (catId, label, items) => {
+                const group = document.createElement('details');
+                group.className = 'item-group';
+                group.dataset.catId = catId;
+                if (openGroups.has(catId)) group.open = true;
+
+                const summary = document.createElement('summary');
+                summary.className = 'item-summary';
+                summary.innerHTML = `<span>${label}</span><div class="meta"><span>${items.length} 件</span></div>`;
+                group.appendChild(summary);
+
+                const entries = document.createElement('div'); entries.className = 'item-entries';
+                if (items.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'terrain-empty';
+                    empty.textContent = '尚未新增物品';
+                    entries.appendChild(empty);
+                } else {
+                    const sorted = items.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-Hant'));
+                    sorted.forEach(it => entries.appendChild(buildItemCard(it, openItems)));
+                }
+                group.appendChild(entries);
+                itemList.appendChild(group);
+            };
+
+            categories.forEach(cat => buildGroup(cat.id, cat.label, map.get(cat.id) || []));
+            if (uncategorized.length > 0) {
+                buildGroup('uncategorized', '未分類', uncategorized);
+            }
+
+            if (openGroups.size === 0 && itemList.firstElementChild instanceof HTMLElement) {
+                const firstDetails = itemList.firstElementChild;
+                if ('open' in firstDetails) firstDetails.open = true;
+            }
+
+            pendingOpenItemId = null;
+            pendingOpenCategoryId = null;
+        }
+
+        // ----------------------------- Animals & Clips -----------------------------
+        const aName = document.getElementById('aName');
+        const aPreview = document.getElementById('aPreview');
+        const clipName = document.getElementById('clipName');
+        const clipFps = document.getElementById('clipFps');
+        const clipFrames = document.getElementById('clipFrames');
+        const addClip = document.getElementById('addClip');
+        const addAnimal = document.getElementById('addAnimal');
+        const animalList = document.getElementById('animalList');
+        const previewAnimal = document.getElementById('previewAnimal');
+        const previewClip = document.getElementById('previewClip');
+        const previewSpeed = document.getElementById('previewSpeed');
+
+        let tempClips = [];
+
+        addClip.onclick = async () => {
+            const name = clipName.value.trim(); if (!name) return alert('請輸入動畫名稱');
+            const fps = Math.max(1, Number(clipFps.value || 6));
+            const files = Array.from(clipFrames.files || []);
+            if (files.length === 0) return alert('請選擇至少 1 張幀圖片');
+            const frames = await Promise.all(files.map(fileToDataUrl));
+            tempClips.push({ name, fps, frames });
+            clipName.value = ''; clipFps.value = '6'; clipFrames.value = '';
+            alert(`已加入動畫 ${name}（${frames.length} 幀）`);
+        };
+
+        addAnimal.onclick = async () => {
+            const name = aName.value.trim(); if (!name) return alert('請輸入動物名稱');
+            let previewDataUrl = undefined;
+            if (aPreview.files && aPreview.files[0]) previewDataUrl = await fileToDataUrl(aPreview.files[0]);
+
+            const aTerrains = Array.from(document.querySelectorAll('#aTerrainChecks input[type=checkbox]'))
+                .filter(x => x.checked).map(x => x.dataset.tid);
+
+            const existing = project.animals.find(a => a.name === name);
+            if (existing) {
+                existing.previewDataUrl = previewDataUrl || existing.previewDataUrl;
+                existing.clips.push(...tempClips);
+                if (aTerrains.length > 0) existing.spawnTerrains = aTerrains;
+                previewAnimal.value = existing.id;
+            } else {
+                const newAn = { id: name.toLowerCase().replace(/\s+/g, '_') + '_' + uid(), name, previewDataUrl, clips: tempClips.slice(), notes: undefined, spawnTerrains: aTerrains };
+                project.animals.push(newAn);
+                previewAnimal.value = newAn.id;
+            }
+            tempClips = []; aName.value = ''; aPreview.value = ''; document.querySelectorAll('#aTerrainChecks input').forEach(x => x.checked = false);
+            saveProject(); updatePreviewSelectors(); loadPreviewFrames();
+        };
+
+        function renderAnimals() {
+            animalList.innerHTML = '';
+            project.animals.forEach(an => {
+                const card = cloneCard();
+                card.querySelector('img').src = an.previewDataUrl || placeholderIcon();
+                card.querySelector('.title').textContent = an.name;
+                const clipSummary = an.clips.map(c => `${c.name}(${c.fps}fps/${c.frames.length}幀)`).join('，') || '-';
+                const terrainsText = (an.spawnTerrains || []).map(id => project.terrains.find(t => t.id === id)?.name || id).join(', ') || '-';
+                card.querySelector('.kvs').innerHTML = `<div>ID</div><div>${an.id}</div><div>動畫</div><div>${clipSummary}</div><div>生成地形</div><div>${terrainsText}</div>`;
+                card.querySelector('.edit').onclick = () => {
+                    const newName = prompt('動物名稱', an.name) || an.name; an.name = newName;
+                    const pick = prompt('以逗號輸入生成地形 ID（不改請留空）', (an.spawnTerrains || []).join(','));
+                    if (pick !== null && pick.trim() !== '') an.spawnTerrains = pick.split(',').map(s => s.trim()).filter(Boolean);
+                    saveProject(); updatePreviewSelectors();
+                };
+                card.querySelector('.del').onclick = () => { if (confirm('刪除此動物？')) { project.animals = project.animals.filter(x => x.id !== an.id); saveProject(); updatePreviewSelectors(); } };
+                animalList.appendChild(card);
+            });
+        }
+
+        function updatePreviewSelectors() {
+            previewAnimal.innerHTML = '';
+            project.animals.forEach(an => {
+                const opt = document.createElement('option'); opt.value = an.id; opt.textContent = an.name; previewAnimal.appendChild(opt);
+            });
+            if (previewAnimal.options.length > 0 && !previewAnimal.value) {
+                previewAnimal.value = previewAnimal.options[previewAnimal.options.length - 1].value;
+            }
+            updatePreviewClips();
+        }
+
+        previewAnimal.onchange = updatePreviewClips;
+        function updatePreviewClips() {
+            previewClip.innerHTML = '';
+            const an = project.animals.find(a => a.id === previewAnimal.value);
+            (an?.clips || []).forEach(c => { const o = document.createElement('option'); o.value = c.name; o.textContent = c.name; previewClip.appendChild(o); });
+            if (previewClip.options.length > 0 && !previewClip.value) { previewClip.value = previewClip.options[0].value; }
+            loadPreviewFrames();
+        }
+
+        // Animation preview loop
+        const animCanvas = document.getElementById('animCanvas');
+        const actx = animCanvas.getContext('2d');
+        let animTimer = 0, animIdx = 0, loadedFrames = [];
+        function loadPreviewFrames() {
+            const an = project.animals.find(a => a.id === previewAnimal.value); if (!an) { loadedFrames = []; return; }
+            const c = an.clips.find(x => x.name === previewClip.value); if (!c) { loadedFrames = []; return; }
+            loadedFrames = c.frames.map(src => { const img = new Image(); img.src = src; return img; });
+            animIdx = 0; animTimer = 0;
+        }
+        previewClip.onchange = loadPreviewFrames;
+        previewSpeed.oninput = () => { };
+
+        function animLoop(ts) {
+            requestAnimationFrame(animLoop);
+            actx.clearRect(0, 0, animCanvas.width, animCanvas.height);
+            const an = project.animals.find(a => a.id === previewAnimal.value);
+            const c = an?.clips.find(x => x.name === previewClip.value);
+            if (!an || !c || loadedFrames.length === 0) return;
+            const sp = Math.max(0.1, Number(previewSpeed.value || 1));
+            animTimer += (sp * (c.fps / 60));
+            if (animTimer >= 1) { animTimer = 0; animIdx = (animIdx + 1) % loadedFrames.length; }
+            const img = loadedFrames[animIdx];
+            const scale = Math.min(animCanvas.width / img.width, animCanvas.height / img.height);
+            const w = img.width * scale, h = img.height * scale; const x = (animCanvas.width - w) / 2, y = (animCanvas.height - h) / 2;
+            actx.imageSmoothingEnabled = false;
+            actx.drawImage(img, x, y, w, h);
+        }
+        requestAnimationFrame(animLoop);
+        setInterval(loadPreviewFrames, 500);
+
+        // ----------------------------- Entities / Hitboxes -----------------------------
+        const eName = document.getElementById('eName');
+        const eImage = document.getElementById('eImage');
+        const hitCanvas = document.getElementById('hitCanvas');
+        const hctx = hitCanvas.getContext('2d');
+        const hitList = document.getElementById('hitList');
+        const clearHitboxes = document.getElementById('clearHitboxes');
+        const saveEntity = document.getElementById('saveEntity');
+        const entityList = document.getElementById('entityList');
+
+        let entityImage = null; // HTMLImageElement
+        let hitboxes = []; // {id,x,y,w,h} normalized
+        let drag = null; // {id, mode:'move'|'resize', ox, oy, corner}
+
+        eImage.onchange = async () => {
+            if (!eImage.files || !eImage.files[0]) return;
+            const dataUrl = await fileToDataUrl(eImage.files[0]);
+            entityImage = new Image(); entityImage.src = dataUrl; entityImage.onload = drawHitCanvas;
+        };
+
+        function toCanvas(px, py) { return { x: px * hitCanvas.width, y: py * hitCanvas.height }; }
+        function toNorm(cx, cy) { return { x: cx / hitCanvas.width, y: cy / hitCanvas.height }; }
+
+        function drawHitCanvas() {
+            hctx.clearRect(0, 0, hitCanvas.width, hitCanvas.height);
+            if (entityImage) {
+                const scale = Math.min(hitCanvas.width / entityImage.width, hitCanvas.height / entityImage.height);
+                const w = entityImage.width * scale, h = entityImage.height * scale, x = (hitCanvas.width - w) / 2, y = (hitCanvas.height - h) / 2;
+                hctx.imageSmoothingEnabled = false; hctx.drawImage(entityImage, x, y, w, h);
+            }
+            hitboxes.forEach(b => {
+                const { x, y } = toCanvas(b.x, b.y); const { x: rx, y: ry } = toCanvas(b.x + b.w, b.y + b.h);
+                hctx.strokeStyle = '#7cffc4'; hctx.setLineDash([6, 4]); hctx.lineWidth = 2; hctx.strokeRect(x, y, rx - x, ry - y);
+                hctx.setLineDash([]);
+                hctx.fillStyle = 'rgba(124,255,196,0.15)'; hctx.fillRect(x, y, rx - x, ry - y);
+                // handles
+                drawHandle(x, y); drawHandle(rx, y); drawHandle(x, ry); drawHandle(rx, ry);
+            });
+        }
+        function drawHandle(x, y) { hctx.fillStyle = '#7aa2ff'; hctx.fillRect(x - 5, y - 5, 10, 10); }
+
+        function hitAt(cx, cy) {
+            // return {box, corner} corner in ['tl','tr','bl','br',null]
+            for (const b of [...hitboxes].slice().reverse()) {
+                const { x, y } = toCanvas(b.x, b.y); const { x: rx, y: ry } = toCanvas(b.x + b.w, b.y + b.h);
+                const inBox = cx >= x && cy >= y && cx <= rx && cy <= ry;
+                const csize = 14; // bigger grab area
+                const corners = [{ k: 'tl', X: x, Y: y }, { k: 'tr', X: rx, Y: y }, { k: 'bl', X: x, Y: ry }, { k: 'br', X: rx, Y: ry }];
+                for (const c of corners) { if (Math.abs(cx - c.X) <= csize && Math.abs(cy - c.Y) <= csize) return { box: b, corner: c.k }; }
+                if (inBox) return { box: b, corner: null };
+            }
+            return null;
+        }
+
+        hitCanvas.oncontextmenu = e => e.preventDefault();
+        hitCanvas.onpointerdown = e => {
+            const rect = hitCanvas.getBoundingClientRect(); const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+            const h = hitAt(cx, cy);
+            if (e.button === 2 && h) { // right-click delete
+                hitboxes = hitboxes.filter(x => x !== h.box); drawHitCanvas(); renderHitList(); return;
+            }
+            if (h) {
+                drag = { id: h.box.id, mode: h.corner ? 'resize' : 'move', ox: cx, oy: cy, corner: h.corner };
+            } else if (e.button === 0 && e.shiftKey) { // 只有按住 Shift 才新增
+                const { x, y } = toNorm(cx, cy); const b = { id: uid(), x, y, w: 0.01, h: 0.01 }; hitboxes.push(b); drag = { id: b.id, mode: 'resize', ox: cx, oy: cy, corner: 'br' };
+            }
+            drawHitCanvas(); renderHitList();
+        };
+        hitCanvas.onpointermove = e => {
+            if (!drag) return;
+            const rect = hitCanvas.getBoundingClientRect(); const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+            const box = hitboxes.find(b => b.id === drag.id); if (!box) return;
+            if (drag.mode === 'move') {
+                const dx = (cx - drag.ox) / hitCanvas.width, dy = (cy - drag.oy) / hitCanvas.height; box.x += dx; box.y += dy; drag.ox = cx; drag.oy = cy;
+            } else if (drag.mode === 'resize') {
+                const nx = Math.min(Math.max(cx, 0), hitCanvas.width); const ny = Math.min(Math.max(cy, 0), hitCanvas.height);
+                const { x: px, y: py } = toNorm(nx, ny); let nx0 = box.x, ny0 = box.y, nw = box.w, nh = box.h;
+                if (drag.corner === 'br') { nw = px - box.x; nh = py - box.y; }
+                if (drag.corner === 'tr') { nw = px - box.x; ny0 = py; nh = (box.y + box.h) - py; }
+                if (drag.corner === 'bl') { nx0 = px; nw = (box.x + box.w) - px; nh = py - box.y; }
+                if (drag.corner === 'tl') { nx0 = px; ny0 = py; nw = (box.x + box.w) - px; nh = (box.y + box.h) - py; }
+                box.x = nx0; box.y = ny0; box.w = nw; box.h = nh;
+            }
+            clampBox(box); drawHitCanvas(); renderHitList();
+        };
+        hitCanvas.onpointerup = () => drag = null;
+        function clampBox(b) {
+            b.w = Math.max(0.001, Math.min(1 - b.x, b.w));
+            b.h = Math.max(0.001, Math.min(1 - b.y, b.h));
+            b.x = Math.max(0, Math.min(1 - b.w, b.x));
+            b.y = Math.max(0, Math.min(1 - b.h, b.y));
+        }
+
+        clearHitboxes.onclick = () => { if (confirm('清空所有碰撞框？')) { hitboxes = []; drawHitCanvas(); renderHitList(); } };
+
+        saveEntity.onclick = async () => {
+            const name = eName.value.trim(); if (!name) return alert('請輸入生物名稱');
+            if (!entityImage) return alert('請先選擇底圖');
+            const id = name.toLowerCase().replace(/\s+/g, '_') + '_' + uid();
+            const imageDataUrl = entityImage.src;
+            project.entities.push({ id, name, imageDataUrl, hitboxes: JSON.parse(JSON.stringify(hitboxes)) });
+            eName.value = ''; eImage.value = ''; entityImage = null; hitboxes = []; drawHitCanvas(); renderHitList(); saveProject();
+        };
+
+        function renderHitList() {
+            hitList.innerHTML = '';
+            hitboxes.forEach((b, i) => {
+                const div = document.createElement('div'); div.className = 'row';
+                div.innerHTML = `<label>#${i + 1}</label><div class="chips">` +
+                    `<span class="chip">x:${b.x.toFixed(3)}</span>` +
+                    `<span class="chip">y:${b.y.toFixed(3)}</span>` +
+                    `<span class="chip">w:${b.w.toFixed(3)}</span>` +
+                    `<span class="chip">h:${b.h.toFixed(3)}</span>` + `</div>`;
+                hitList.appendChild(div);
+            });
+        }
+
+        function renderEntities() {
+            entityList.innerHTML = '';
+            project.entities.forEach(en => {
+                const card = cloneCard();
+                card.querySelector('img').src = en.imageDataUrl || placeholderIcon();
+                card.querySelector('.title').textContent = en.name;
+                card.querySelector('.kvs').innerHTML = `<div>ID</div><div>${en.id}</div><div>碰撞框</div><div>${en.hitboxes.length} 個</div>`;
+                card.querySelector('.edit').onclick = () => {
+                    // load into editor
+                    eName.value = en.name;
+                    entityImage = new Image(); entityImage.src = en.imageDataUrl; entityImage.onload = drawHitCanvas;
+                    hitboxes = JSON.parse(JSON.stringify(en.hitboxes)); drawHitCanvas(); renderHitList();
+                };
+                card.querySelector('.del').onclick = () => { if (confirm('刪除此生物？')) { project.entities = project.entities.filter(x => x.id !== en.id); saveProject(); } };
+                entityList.appendChild(card);
+            });
+        }
+
+        // ----------------------------- Import / Export / Reset -----------------------------
+        document.getElementById('btnExport').onclick = () => {
+            const file = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = 'game-assets.json'; a.click(); URL.revokeObjectURL(url);
+        };
+        document.getElementById('importJson').onchange = async (e) => {
+            const f = e.target.files?.[0]; if (!f) return; const txt = await f.text();
+            try { project = JSON.parse(txt); saveProject(); alert('匯入完成'); updatePreviewSelectors(); }
+            catch (err) { alert('匯入失敗：JSON 格式錯誤'); }
+            e.target.value = '';
+        };
+        document.getElementById('btnReset').onclick = () => { if (confirm('清空並重置所有資料？')) { project = emptyProject(); saveProject(); updatePreviewSelectors(); } };
+
+        // ----------------------------- Helpers & Render -----------------------------
+        function cloneCard() { return document.getElementById('tpl-card').content.firstElementChild.cloneNode(true); }
+        function placeholderIcon() {
+            return 'data:image/svg+xml,' + encodeURIComponent(svgIcon('#7cffc4'));
+        }
+        function svgIcon(color) {
+            return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${color}"/><stop offset="1" stop-color="#1e2a66"/></linearGradient></defs><rect rx="12" width="64" height="64" fill="url(#g)"/><g fill="#0b1020" opacity=".6"><circle cx="48" cy="14" r="4"/><circle cx="20" cy="46" r="6"/><rect x="12" y="14" width="24" height="12" rx="3"/></g></svg>`;
+        }
+
+        function renderAll() { renderTerrains(); renderItems(); renderAnimals(); renderEntities(); }
+
+        // ----------------------------- Init -----------------------------
+        renderAll(); switchTab(currentTab); updatePreviewSelectors(); drawHitCanvas();
+        syncItemsFromServer();
+        syncTerrainsFromServer();
+    </script>
+
+    <!-- Drops UI add-on v2 -->
+    <script src="drops-addon.js"></script>
+    <script>(function () { function f() { return document.querySelector('#item-editor-right') || document.querySelector('#item-editor') || document.querySelector('#items-panel') || document.querySelector('[data-tab="items"]') || document.body } if (typeof window.openItemEditor === 'function') { const o = window.openItemEditor; window.openItemEditor = function (i) { const r = o.apply(this, arguments); try { ItemDrops.onOpen(i, f()) } catch (e) { console.warn('[drops] onOpen warn:', e) } return r } } window.addEventListener('adventurelife:openItemEditor', ev => { const i = ev.detail && ev.detail.item; if (i) ItemDrops.onOpen(i, f()) }); function w() { const form = document.querySelector('form#item-form, form[name="item-form"]') || document.querySelector('#items form'); if (!form) return; form.addEventListener('submit', function (e) { try { const fd = new FormData(this); ItemDrops.onCollect(fd); } catch (err) { console.warn('[drops] submit hook warn:', err) } }, { capture: true }); } document.addEventListener('DOMContentLoaded', w); setTimeout(w, 800); })();</script>
+
+</body>
+
+</html>
