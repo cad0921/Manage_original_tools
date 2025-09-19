@@ -406,6 +406,100 @@
             margin: 0;
         }
 
+        .drop-editor-wrap {
+            width: 100%;
+        }
+
+        .row.item-drop-row>label {
+            align-self: flex-start;
+            padding-top: 6px;
+        }
+
+        .drop-editor {
+            display: grid;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #23306a;
+            border-radius: 12px;
+            background: rgba(8, 14, 42, 0.85);
+        }
+
+        .drop-editor .drop-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .drop-editor .drop-row {
+            display: grid;
+            grid-template-columns: minmax(90px, 0.8fr) minmax(70px, 0.5fr) minmax(70px, 0.5fr) minmax(150px, 1fr) minmax(160px, 1.2fr) auto;
+            gap: 8px;
+            align-items: center;
+            padding: 6px 8px;
+            border: 1px dashed rgba(58, 78, 150, 0.6);
+            border-radius: 10px;
+            background: rgba(10, 18, 48, 0.4);
+        }
+
+        .drop-editor .drop-row input,
+        .drop-editor .drop-row select {
+            width: 100%;
+        }
+
+        .drop-editor .drop-row button {
+            justify-self: end;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #4a2850;
+            background: linear-gradient(180deg, #7a273a, #541a28);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .drop-editor .drop-empty {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px dashed rgba(58, 78, 150, 0.4);
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .drop-editor .drop-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .drop-editor .drop-note {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .drop-editor .btn-add-drop {
+            padding: 7px 12px;
+            border-radius: 10px;
+            border: 1px solid #2742a2;
+            background: linear-gradient(180deg, rgba(39, 66, 162, 0.65), rgba(26, 46, 119, 0.8));
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .drop-editor .btn-add-drop:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+        }
+
+        @media (max-width:780px) {
+            .drop-editor .drop-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .drop-editor .drop-row button {
+                justify-self: stretch;
+            }
+        }
+
         .item-group {
             border: 1px solid #1f2755;
             border-radius: 14px;
@@ -449,6 +543,7 @@
         .item-summary .meta {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
             font-size: 12px;
             color: var(--muted);
         }
@@ -667,6 +762,9 @@
                             <div id="iTerrainChecks" class="checklist"></div>
                         </div>
                         <div class="row"><label>備註</label><textarea id="iNote" placeholder="限制、互動規則等…"></textarea></div>
+                        <div class="row item-drop-row"><label>掉落設定</label>
+                            <div id="iDropEditor" class="drop-editor-wrap"></div>
+                        </div>
                         <div class="row"><button id="addItem" class="btn">新增物品</button></div>
                     </div>
                     <div>
@@ -1273,6 +1371,246 @@
             }
         }
 
+        const dropLabelFallback = {
+            entity: '動畫生物',
+            material: '素材',
+            weapon: '武器',
+            armor: '防具',
+            decor: '裝飾',
+            interactive: '可互動',
+            building: '建材',
+            resource: '素材',
+            consumable: '消耗品',
+            crop: '農作物',
+            mineral: '礦物',
+            tree: '樹木',
+            animal: '生物'
+        };
+
+        function getDropSourceOptions() {
+            ensureItemCategories(project.itemCategories);
+            const options = [];
+            const seen = new Set();
+            const add = (id, label) => {
+                if (!id || seen.has(id)) return;
+                seen.add(id);
+                options.push({ id, label: label || dropLabelFallback[id] || id });
+            };
+            add('entity', dropLabelFallback.entity);
+            (project.itemCategories || []).forEach(cat => {
+                if (!cat || !cat.id || cat.id === 'drop') return;
+                add(cat.id, cat.label || cat.name || dropLabelFallback[cat.id] || cat.id);
+            });
+            ['material', 'weapon', 'armor'].forEach(id => add(id, dropLabelFallback[id]));
+            return options;
+        }
+
+        function formatDropSummary(drops, sourceOptions = getDropSourceOptions()) {
+            if (!Array.isArray(drops) || drops.length === 0) return '—';
+            const labelMap = new Map((sourceOptions || []).map(opt => [opt.id, opt.label]));
+            return drops.map(d => {
+                const chanceNum = Math.max(0, Math.min(1, Number(d?.chance ?? 0)));
+                const chance = Math.round(chanceNum * 100);
+                let min = parseInt(d?.min ?? 0, 10);
+                if (!Number.isFinite(min) || isNaN(min) || min < 0) min = 0;
+                let max = parseInt(d?.max ?? min, 10);
+                if (!Number.isFinite(max) || isNaN(max) || max < min) max = min;
+                const qty = min === max ? `${min}` : `${min}-${max}`;
+                const type = (d?.sourceType ?? '').toString().trim();
+                const label = type ? (labelMap.get(type) || dropLabelFallback[type] || type) : '';
+                const sourceId = (d?.sourceId ?? '').toString().trim();
+                const sourceText = type ? `${label}${sourceId ? `:${sourceId}` : ''}` : '';
+                return `${chance}% × ${qty}${sourceText ? `（${sourceText}）` : ''}`;
+            }).join('；');
+        }
+
+        function createDropEditor({ initialDrops = [], sourceOptions = [], addButtonLabel = '＋新增掉落規則', noteText = '機率 0–1；來源可為分類（不含掉落物）或實體 ID。', onChange } = {}) {
+            let options = Array.isArray(sourceOptions) ? sourceOptions.map(opt => ({ ...opt })) : [];
+            const container = document.createElement('div');
+            container.className = 'drop-editor';
+            const list = document.createElement('div');
+            list.className = 'drop-list';
+            const actions = document.createElement('div');
+            actions.className = 'drop-actions';
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'btn-add-drop';
+            addBtn.textContent = addButtonLabel;
+            const note = document.createElement('div');
+            note.className = 'drop-note';
+            note.textContent = noteText;
+            actions.appendChild(addBtn);
+            container.append(list, actions, note);
+
+            const sanitize = (raw) => {
+                const baseType = options.length > 0 ? options[0].id : 'entity';
+                let chance = parseFloat(raw?.chance ?? 0);
+                if (!Number.isFinite(chance)) chance = 0;
+                chance = Math.max(0, Math.min(1, chance));
+                let min = parseInt(raw?.min ?? 0, 10);
+                if (!Number.isFinite(min) || isNaN(min) || min < 0) min = 0;
+                let max = parseInt(raw?.max ?? min, 10);
+                if (!Number.isFinite(max) || isNaN(max) || max < min) max = min;
+                let sourceType = (raw?.sourceType ?? '').toString().trim();
+                if (sourceType === '') sourceType = baseType;
+                const sourceId = (raw?.sourceId ?? '').toString().trim();
+                return { chance, min, max, sourceType, sourceId };
+            };
+
+            let drops = Array.isArray(initialDrops) ? initialDrops.map(sanitize) : [];
+            const getDropsSnapshot = () => drops.map(sanitize);
+
+            function buildOptionElements(select, value) {
+                select.innerHTML = '';
+                options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.id;
+                    option.textContent = opt.label;
+                    select.appendChild(option);
+                });
+                if (value && !options.some(opt => opt.id === value)) {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    select.appendChild(option);
+                }
+                select.value = value || (options[0]?.id ?? '');
+            }
+
+            function triggerChange() {
+                if (typeof onChange === 'function') {
+                    onChange(getDropsSnapshot());
+                }
+            }
+
+            function render() {
+                list.innerHTML = '';
+                if (drops.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'drop-empty';
+                    empty.textContent = '尚未設定掉落規則';
+                    list.appendChild(empty);
+                    return;
+                }
+                drops.forEach((drop, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'drop-row';
+                    row.dataset.idx = String(idx);
+
+                    const chanceInput = document.createElement('input');
+                    chanceInput.type = 'number';
+                    chanceInput.step = '0.01';
+                    chanceInput.min = '0';
+                    chanceInput.max = '1';
+                    chanceInput.value = String(drop.chance);
+
+                    const minInput = document.createElement('input');
+                    minInput.type = 'number';
+                    minInput.step = '1';
+                    minInput.min = '0';
+                    minInput.value = String(drop.min);
+
+                    const maxInput = document.createElement('input');
+                    maxInput.type = 'number';
+                    maxInput.step = '1';
+                    maxInput.min = '0';
+                    maxInput.value = String(drop.max);
+
+                    const typeSelect = document.createElement('select');
+                    buildOptionElements(typeSelect, drop.sourceType);
+
+                    const idInput = document.createElement('input');
+                    idInput.type = 'text';
+                    idInput.placeholder = '來源 ID（例：forest_wolf / wheat）';
+                    idInput.value = drop.sourceId;
+
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.textContent = '刪除';
+
+                    chanceInput.addEventListener('change', () => {
+                        const sanitized = sanitize({ ...drops[idx], chance: chanceInput.value });
+                        drops[idx].chance = sanitized.chance;
+                        chanceInput.value = String(drops[idx].chance);
+                        triggerChange();
+                    });
+
+                    minInput.addEventListener('change', () => {
+                        const sanitized = sanitize({ ...drops[idx], min: minInput.value });
+                        drops[idx].min = sanitized.min;
+                        if (drops[idx].max < drops[idx].min) {
+                            drops[idx].max = drops[idx].min;
+                            maxInput.value = String(drops[idx].max);
+                        }
+                        minInput.value = String(drops[idx].min);
+                        triggerChange();
+                    });
+
+                    maxInput.addEventListener('change', () => {
+                        const sanitized = sanitize({ ...drops[idx], max: maxInput.value });
+                        drops[idx].max = sanitized.max < drops[idx].min ? drops[idx].min : sanitized.max;
+                        maxInput.value = String(drops[idx].max);
+                        triggerChange();
+                    });
+
+                    typeSelect.addEventListener('change', () => {
+                        drops[idx].sourceType = typeSelect.value;
+                        triggerChange();
+                    });
+
+                    idInput.addEventListener('input', () => {
+                        drops[idx].sourceId = idInput.value;
+                    });
+
+                    idInput.addEventListener('blur', () => {
+                        drops[idx].sourceId = idInput.value.trim();
+                        triggerChange();
+                    });
+
+                    delBtn.addEventListener('click', () => {
+                        drops.splice(idx, 1);
+                        render();
+                        triggerChange();
+                    });
+
+                    row.append(chanceInput, minInput, maxInput, typeSelect, idInput, delBtn);
+                    list.appendChild(row);
+                });
+            }
+
+            addBtn.addEventListener('click', () => {
+                const defaultType = options[0]?.id ?? 'entity';
+                drops.push(sanitize({ chance: 1, min: 1, max: 1, sourceType: defaultType, sourceId: '' }));
+                render();
+                triggerChange();
+            });
+
+            render();
+
+            return {
+                element: container,
+                getDrops() {
+                    return getDropsSnapshot();
+                },
+                setDrops(newDrops) {
+                    drops = Array.isArray(newDrops) ? newDrops.map(sanitize) : [];
+                    render();
+                    triggerChange();
+                },
+                setSourceOptions(newOptions) {
+                    options = Array.isArray(newOptions) ? newOptions.map(opt => ({ ...opt })) : [];
+                    drops = drops.map(drop => sanitize(drop));
+                    render();
+                }
+            };
+        }
+
+        const iDropContainer = document.getElementById('iDropEditor');
+        const createItemDropEditor = iDropContainer ? createDropEditor({ initialDrops: [], sourceOptions: getDropSourceOptions() }) : null;
+        if (createItemDropEditor && iDropContainer) {
+            iDropContainer.appendChild(createItemDropEditor.element);
+        }
+
         addItem.onclick = async () => {
             const name = iName.value.trim();
             if (!name) return alert('請輸入名稱');
@@ -1290,6 +1628,11 @@
             formData.append('categoryId', categoryId);
             formData.append('notes', notes);
             formData.append('terrains', JSON.stringify(terrains));
+            if (createItemDropEditor) {
+                formData.append('drops', JSON.stringify(createItemDropEditor.getDrops()));
+            } else {
+                formData.append('drops', '[]');
+            }
             if (iIcon.files && iIcon.files[0]) {
                 formData.append('image', iIcon.files[0]);
             }
@@ -1320,6 +1663,9 @@
                 iName.value = '';
                 iNote.value = '';
                 iIcon.value = '';
+                if (createItemDropEditor) {
+                    createItemDropEditor.setDrops([]);
+                }
                 populateTerrainChecklist(document.getElementById('iTerrainChecks'), []);
             } catch (err) {
                 console.error('Failed to create item', err);
@@ -1344,7 +1690,7 @@
             return select;
         }
 
-        function buildItemCard(item, openItems) {
+        function buildItemCard(item, openItems, dropOptions) {
             const terrainsLookup = new Map((project.terrains || []).map(t => [t.id, t.name]));
             const terrainNames = (item.terrains || []).map(id => terrainsLookup.get(id) || id);
 
@@ -1355,9 +1701,19 @@
 
             const summary = document.createElement('summary');
             const terrainText = terrainNames.length > 0 ? terrainNames.join(', ') : '-';
-            summary.innerHTML = `
-                <span>${item.name}</span>
-                <div class="meta"><span>ID: ${item.id}</span><span>地形：${terrainText}</span></div>`;
+            const titleSpan = document.createElement('span');
+            titleSpan.textContent = item.name;
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+            const idSpan = document.createElement('span');
+            idSpan.textContent = `ID: ${item.id}`;
+            const terrainSpan = document.createElement('span');
+            terrainSpan.textContent = `地形：${terrainText}`;
+            const dropMeta = document.createElement('span');
+            dropMeta.className = 'item-drop-meta';
+            dropMeta.textContent = `掉落：${formatDropSummary(item.drops, dropOptions)}`;
+            meta.append(idSpan, terrainSpan, dropMeta);
+            summary.append(titleSpan, meta);
             card.appendChild(summary);
 
             const body = document.createElement('div');
@@ -1381,6 +1737,19 @@
             const notesField = document.createElement('textarea'); notesField.value = item.notes || '';
             notesRow.appendChild(notesLabel); notesRow.appendChild(notesField);
 
+            const dropRow = document.createElement('div'); dropRow.className = 'row item-drop-row';
+            const dropLabel = document.createElement('label'); dropLabel.textContent = '掉落設定';
+            const dropWrap = document.createElement('div'); dropWrap.className = 'drop-editor-wrap';
+            const dropEditor = createDropEditor({
+                initialDrops: Array.isArray(item.drops) ? item.drops : [],
+                sourceOptions: dropOptions,
+                noteText: '調整後記得按「儲存變更」。',
+                onChange: drops => { dropMeta.textContent = `掉落：${formatDropSummary(drops, dropOptions)}`; }
+            });
+            dropWrap.appendChild(dropEditor.element);
+            dropRow.appendChild(dropLabel);
+            dropRow.appendChild(dropWrap);
+
             const terrainRow = document.createElement('div'); terrainRow.className = 'row';
             const terrainLabel = document.createElement('label'); terrainLabel.textContent = '適用地形';
             const terrainWrap = document.createElement('div'); terrainWrap.className = 'checklist';
@@ -1394,7 +1763,7 @@
             const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn danger'; deleteBtn.textContent = '刪除此物品';
             actionsRow.append(saveBtn, uploadBtn, removeImageBtn, deleteBtn);
 
-            form.append(nameRow, catRow, notesRow, terrainRow, actionsRow);
+            form.append(nameRow, catRow, notesRow, dropRow, terrainRow, actionsRow);
             body.appendChild(form);
 
             const imageSection = document.createElement('div');
@@ -1472,6 +1841,7 @@
                 formData.append('categoryId', catSelect.value);
                 formData.append('notes', notesField.value.trim());
                 formData.append('terrains', JSON.stringify(terrainsSelected));
+                formData.append('drops', JSON.stringify(dropEditor.getDrops()));
                 try {
                     const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
                     const data = await res.json();
@@ -1571,6 +1941,8 @@
         function renderItems() {
             if (!itemList) return;
             renderItemCategoryOptions();
+            const dropOptions = getDropSourceOptions();
+            if (createItemDropEditor) createItemDropEditor.setSourceOptions(dropOptions);
             const openGroups = new Set(Array.from(itemList.querySelectorAll('.item-group[open]')).map(el => el.dataset.catId));
             const openItems = new Set(Array.from(itemList.querySelectorAll('.item-card[open]')).map(el => el.dataset.itemId));
 
@@ -1611,7 +1983,7 @@
                     entries.appendChild(empty);
                 } else {
                     const sorted = items.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-Hant'));
-                    sorted.forEach(it => entries.appendChild(buildItemCard(it, openItems)));
+                    sorted.forEach(it => entries.appendChild(buildItemCard(it, openItems, dropOptions)));
                 }
                 group.appendChild(entries);
                 itemList.appendChild(group);

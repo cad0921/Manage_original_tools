@@ -38,6 +38,11 @@
       "id": "tree",
       "name": "樹木",
       "label": "樹木"
+    },
+    {
+      "id": "animal",
+      "name": "生物",
+      "label": "生物"
     }
   ],
   "items": [],

@@ -14,7 +14,7 @@ $itemsDir = __DIR__ . '/Items';
 $jsonPath = $itemsDir . '/items.json';
 $allowedExt = ['png','jpg','jpeg','gif','webp'];
 $maxUpload  = 5 * 1024 * 1024;
-$allowedSources = ['entity','crop','mineral','tree'];
+$allowedSources = ['entity','material','weapon','armor','decor','interactive','building','resource','consumable','crop','mineral','tree','animal'];
 
 function respond($code, $payload) {
   http_response_code($code);
