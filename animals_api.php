@@ -19,7 +19,12 @@ $allowedExt = ['png','jpg','jpeg','gif','webp'];
 $maxUpload  = 5 * 1024 * 1024;
 
 function respond($code, $payload){ http_response_code($code); echo json_encode($payload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT); exit; }
-function ensure_dir($p){ if(!is_dir($p)){ if(!@mkdir($p,0777,true) && !is_dir($p)) respond(500,["status"=>"error","message"=>"無法建立目錄"]); } @chmod($p,0777); }
+function ensure_dir($p, $fatal = true){
+  if (is_dir($p)) { @chmod($p,0777); return true; }
+  if (@mkdir($p,0777,true) || is_dir($p)) { @chmod($p,0777); return true; }
+  if ($fatal) respond(500,["status"=>"error","message"=>"無法建立目錄"]);
+  return false;
+}
 function try_save($path,$data){ ensure_dir(dirname($path)); $j=json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT); $tmp=$path.'.tmp_'.substr(sha1((string)microtime(true)),0,6); $b=@file_put_contents($tmp,$j,LOCK_EX); if($b===false) respond(500,["status"=>"error","message"=>"無法建立暫存檔"]); if(!@rename($tmp,$path)){ @unlink($tmp); respond(500,["status"=>"error","message"=>"無法寫入檔案"]); } @chmod($path,0666); }
 function load_json($path,$rootKey){ if(!file_exists($path)){ $seed=[$rootKey=>[]]; @file_put_contents($path, json_encode($seed, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)); return $seed; } $txt=@file_get_contents($path); $d=json_decode($txt,true); if(!is_array($d)) $d=[$rootKey=>[]]; if(!isset($d[$rootKey])||!is_array($d[$rootKey])) $d[$rootKey]=[]; return $d; }
 function slugify($s){ $s = mb_strtolower(trim((string)$s),'UTF-8'); $s = preg_replace('/[^\p{L}\p{N}\-_\s]/u','',$s) ?? ''; $s = preg_replace('/\s+/', '-', $s) ?? ''; return $s !== '' ? $s : 'animal'; }
@@ -67,15 +72,28 @@ if ($action === 'create') {
 
   // Mirror to Items
   $itemId = 'animal-'.$id;
-  $itemDir = $itemsDir.'/'.$itemId; ensure_dir($itemDir);
+  $itemDir = $itemsDir.'/'.$itemId;
   // copy image if exists
   $itemImage = null;
   if ($imageMeta && isset($imageMeta['filename'])) {
+    $useItemSubdir = ensure_dir($itemDir, false);
+    if (!$useItemSubdir) ensure_dir($itemsDir);
     $src = $animalsDir.'/'.$id.'/'.$imageMeta['filename'];
-    $ext = pathinfo($src, PATHINFO_EXTENSION);
-    $dst = $itemDir.'/image.'.$ext;
-    @copy($src, $dst); @chmod($dst,0666);
-    $itemImage = ["filename"=>'image.'.$ext, "path"=>"Items/$itemId/image.$ext", "label"=>$imageMeta['label'] ?? "", "uploadedAt"=>gmdate('c')];
+    if (is_file($src)) {
+      $ext = pathinfo($src, PATHINFO_EXTENSION);
+      $filename = $useItemSubdir ? ('image.'.$ext) : ($itemId.'_'.substr(sha1((string)microtime(true)),0,6).'.'.$ext);
+      $destDir = $useItemSubdir ? $itemDir : $itemsDir;
+      $dst = $destDir.'/'.$filename;
+      if (@copy($src, $dst)) {
+        @chmod($dst,0666);
+        $itemImage = [
+          "filename"=>$filename,
+          "path"=>'Items/'.($useItemSubdir ? ($itemId.'/'.$filename) : $filename),
+          "label"=>$imageMeta['label'] ?? "",
+          "uploadedAt"=>gmdate('c')
+        ];
+      }
+    }
   }
   // remove existing same id if any
   $idx=-1; foreach ($items['items'] as $i=>$it) if (($it['id']??'')===$itemId){ $idx=$i; break; }
@@ -116,15 +134,23 @@ if ($action === 'update') {
   // Mirror update to Items
   $itemId = 'animal-'.$id;
   $iidx=-1; foreach($items['items'] as $i=>$it) if(($it['id']??'')===$itemId){ $iidx=$i; break; }
-  $itemDir = $itemsDir.'/'.$itemId; ensure_dir($itemDir);
+  $itemDir = $itemsDir.'/'.$itemId;
   $itemImage = $items['items'][$iidx]['image'] ?? null;
-  if(isset($_FILES['image'])){
-    if(isset($animals['animals'][$aidx]['image']['filename'])){
-      $src = $animalsDir.'/'.$id.'/'.$animals['animals'][$aidx]['image']['filename'];
+  $hasNewUpload = !empty($_FILES['image']) && (($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK);
+  if($hasNewUpload && isset($animals['animals'][$aidx]['image']['filename'])){
+    $src = $animalsDir.'/'.$id.'/'.$animals['animals'][$aidx]['image']['filename'];
+    if (is_file($src)) {
+      $useItemSubdir = ensure_dir($itemDir, false);
+      if (!$useItemSubdir) ensure_dir($itemsDir);
       $ext = pathinfo($src, PATHINFO_EXTENSION);
-      $dst = $itemDir.'/image.'.$ext;
-      @copy($src,$dst); @chmod($dst,0666);
-      $itemImage = ["filename"=>'image.'.$ext, "path"=>"Items/$itemId/image.$ext", "label"=>$animals['animals'][$aidx]['image']['label'] ?? "", "uploadedAt"=>gmdate('c')];
+      $filename = $useItemSubdir ? ('image.'.$ext) : ($itemId.'_'.substr(sha1((string)microtime(true)),0,6).'.'.$ext);
+      $destDir = $useItemSubdir ? $itemDir : $itemsDir;
+      $dst = $destDir.'/'.$filename;
+      if (@copy($src,$dst)) {
+        @chmod($dst,0666);
+        if (isset($itemImage['path'])) { @unlink(__DIR__.'/'.$itemImage['path']); }
+        $itemImage = ["filename"=>$filename, "path"=>'Items/'.($useItemSubdir ? ($itemId.'/'.$filename) : $filename), "label"=>$animals['animals'][$aidx]['image']['label'] ?? "", "uploadedAt"=>gmdate('c')];
+      }
     }
   }
   $mirrored = [
@@ -161,6 +187,9 @@ if ($action === 'delete') {
   $itemId = 'animal-'.$id;
   $iidx=-1; foreach($items['items'] as $i=>$it) if(($it['id']??'')===$itemId){ $iidx=$i; break; }
   if ($iidx!==-1) {
+    if (isset($items['items'][$iidx]['image']['path'])) {
+      @unlink(__DIR__.'/'.$items['items'][$iidx]['image']['path']);
+    }
     $itemDir = $itemsDir.'/'.$itemId;
     if (is_dir($itemDir)) { $files=glob($itemDir.'/*'); if(is_array($files)) foreach($files as $f) if(is_file($f)) @unlink($f); @rmdir($itemDir); }
     array_splice($items['items'],$iidx,1); try_save($itemsJson,$items);
