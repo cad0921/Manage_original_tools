@@ -1,0 +1,36 @@
+{
+  "entities": [
+    {
+      "id": "player",
+      "name": "Player",
+      "sprite": "Entities/sprites/player.png",
+      "collisionBox": {
+        "offset": {
+          "x": 12,
+          "y": 20
+        },
+        "size": {
+          "width": 28,
+          "height": 44
+        }
+      },
+      "hitZones": [
+        {
+          "id": "head",
+          "offset": {
+            "x": 10,
+            "y": 6
+          },
+          "size": {
+            "width": 16,
+            "height": 12
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "notes": "Use hitZones for fine-grained collision or damage logic.",
+    "lastUpdated": null
+  }
+}

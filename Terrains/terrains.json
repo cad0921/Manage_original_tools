@@ -1,0 +1,14 @@
+{
+    "terrains": [
+        {
+            "id": "test_bab18f",
+            "name": "test",
+            "tag": null,
+            "images": []
+        }
+    ],
+    "metadata": {
+        "notes": "Managed via terrain_api.php",
+        "lastUpdated": "2025-09-19T07:10:22+00:00"
+    }
+}

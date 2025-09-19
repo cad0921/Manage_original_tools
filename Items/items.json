@@ -1,0 +1,48 @@
+{
+  "categories": [
+    {
+      "id": "decor",
+      "label": "裝飾"
+    },
+    {
+      "id": "interactive",
+      "label": "可互動"
+    },
+    {
+      "id": "building",
+      "label": "建材"
+    },
+    {
+      "id": "drop",
+      "label": "掉落物"
+    },
+    {
+      "id": "resource",
+      "label": "素材"
+    },
+    {
+      "id": "consumable",
+      "label": "消耗品"
+    },
+    {
+      "id": "crop",
+      "name": "農作物",
+      "label": "農作物"
+    },
+    {
+      "id": "mineral",
+      "name": "礦物",
+      "label": "礦物"
+    },
+    {
+      "id": "tree",
+      "name": "樹木",
+      "label": "樹木"
+    }
+  ],
+  "items": [],
+  "metadata": {
+    "notes": "Managed via item_api.php",
+    "lastUpdated": null
+  }
+}

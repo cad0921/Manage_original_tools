@@ -1,0 +1,27 @@
+{
+  "animals": [
+    {
+      "id": "forest_wolf",
+      "name": "Forest Wolf",
+      "habitat": "temperate_forest",
+      "image": "Animals/sprites/forest_wolf.png",
+      "behavior": "neutral",
+      "stats": {
+        "health": 120,
+        "attack": 18,
+        "defense": 6,
+        "speed": 14
+      },
+      "drops": [
+        {
+          "itemId": "wolf_pelt",
+          "chance": 0.35
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "notes": "Document animal attributes, behaviors, and loot tables here.",
+    "lastUpdated": null
+  }
+}
