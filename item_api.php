@@ -14,7 +14,7 @@ $itemsDir = __DIR__ . '/Items';
 $jsonPath = $itemsDir . '/items.json';
 $allowedExt = ['png','jpg','jpeg','gif','webp'];
 $maxUpload  = 5 * 1024 * 1024;
-$allowedSources = ['entity','crop','mineral','tree'];
+$allowedSources = ['entity','material','weapon','armor','decor','interactive','building','resource','consumable','crop','mineral','tree','animal'];
 
 function respond($code, $payload) {
   http_response_code($code);
@@ -156,10 +156,11 @@ if ($action === 'create') {
 
   $slug = slugify($name);
   $id   = $slug.'_'.substr(sha1(uniqid('',true)),0,6);
-  $itemDir = $itemsDir.'/'.$id; ensure_dir($itemDir);
+  $itemDir = $itemsDir.'/'.$id;
 
   $imageMeta = null;
   if (!empty($_FILES['image']) && (($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE)) {
+    ensure_dir($itemDir);
     $err = (int)$_FILES['image']['error'];
     if ($err !== UPLOAD_ERR_OK) respond(400, ["status"=>"error","handledAction"=>"create","message"=>"image upload error: $err"]);
     $size = (int)($_FILES['image']['size'] ?? 0);
@@ -198,8 +199,9 @@ if ($action === 'update') {
   if(isset($_POST['drops'])){ $items[$idx]['drops']=parse_drops_from_request('drops'); $changed=true; }
 
   // 圖片處理
-  $dir = $itemsDir.'/'.$id; ensure_dir($dir);
+  $dir = $itemsDir.'/'.$id;
   if (!empty($_FILES['image']) && (($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE)) {
+    ensure_dir($dir);
     $err = (int)$_FILES['image']['error']; if($err!==UPLOAD_ERR_OK) respond(400, ["status"=>"error","handledAction"=>"update","message"=>"image upload error: $err"]);
     $size = (int)($_FILES['image']['size'] ?? 0); if($size>$maxUpload) respond(400, ["status"=>"error","handledAction"=>"update","message"=>"image too large"]);
     $nameOrig = (string)($_FILES['image']['name'] ?? 'image');
