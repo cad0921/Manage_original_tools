@@ -194,6 +194,52 @@
             color: #cfe0ff
         }
 
+        .frame-duration-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%
+        }
+
+        .frame-duration-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid #27306b;
+            background: #10183a
+        }
+
+        .frame-duration-index {
+            font-size: 12px;
+            color: var(--muted);
+            min-width: 32px
+        }
+
+        .frame-duration-name {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text);
+            opacity: .85;
+            word-break: break-all
+        }
+
+        .frame-duration-item input[type="number"] {
+            max-width: 90px
+        }
+
+        .frame-duration-suffix {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .frame-duration-empty,
+        .frame-duration-hint {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
         .list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -790,6 +836,11 @@
                                 max="60" /></div>
                         <div class="row"><label>動畫幀圖片</label><input id="clipFrames" type="file" accept="image/*"
                                 multiple /></div>
+                        <div class="row"><label>各幀秒數</label>
+                                <div id="clipFrameList" class="frame-duration-list">
+                                    <div class="frame-duration-empty">尚未選擇圖片</div>
+                                </div>
+                            </div>
                         <div class="row"><label>生成地形</label>
                             <div id="aTerrainChecks" class="chips"></div>
                         </div>
@@ -834,6 +885,7 @@
             <div class="body">
                 <div class="grid">
                     <div>
+                        <div class="row"><label>來源</label><select id="eSource"></select></div>
                         <div class="row"><label>名稱</label><input id="eName" type="text" placeholder="敵人或可互動物件名稱" />
                         </div>
                         <div class="row"><label>底圖</label><input id="eImage" type="file" accept="image/*" /></div>
@@ -918,6 +970,10 @@
         if (!Array.isArray(project.items)) {
             project.items = [];
         }
+        if (!Array.isArray(project.animals)) {
+            project.animals = [];
+        }
+        upgradeAnimalClips();
         const saveProject = () => { project.meta.updatedAt = new Date().toISOString(); localStorage.setItem(LS_KEY, JSON.stringify(project)); renderAll(); };
 
         // ----------------------------- Tabs -----------------------------
@@ -2009,6 +2065,7 @@
         const clipName = document.getElementById('clipName');
         const clipFps = document.getElementById('clipFps');
         const clipFrames = document.getElementById('clipFrames');
+        const clipFrameList = document.getElementById('clipFrameList');
         const addClip = document.getElementById('addClip');
         const addAnimal = document.getElementById('addAnimal');
         const animalList = document.getElementById('animalList');
@@ -2017,16 +2074,150 @@
         const previewSpeed = document.getElementById('previewSpeed');
 
         let tempClips = [];
+        let selectedClipFrames = [];
+
+        function normalizeClipFrames(clip) {
+            if (!clip || typeof clip !== 'object') return [];
+            if (!Array.isArray(clip.frames)) clip.frames = [];
+            const fps = Math.max(1, Number(clip.fps || 6));
+            const fallbackDuration = 1 / fps;
+            clip.frames = clip.frames.map(frame => {
+                if (typeof frame === 'string') {
+                    return { src: frame, duration: fallbackDuration };
+                }
+                if (frame && typeof frame === 'object') {
+                    const src = frame.src || frame.dataUrl || frame.image || '';
+                    if (!src) return null;
+                    const duration = Math.max(0.01, Number(frame.duration) || fallbackDuration);
+                    return { src, duration };
+                }
+                return null;
+            }).filter(Boolean);
+            return clip.frames;
+        }
+
+        function renderClipFrameDurations() {
+            if (!clipFrameList) return;
+            clipFrameList.innerHTML = '';
+            if (selectedClipFrames.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'frame-duration-empty';
+                empty.textContent = '尚未選擇圖片';
+                clipFrameList.appendChild(empty);
+                return;
+            }
+            selectedClipFrames.forEach((frame, idx) => {
+                const item = document.createElement('div');
+                item.className = 'frame-duration-item';
+                const index = document.createElement('span');
+                index.className = 'frame-duration-index';
+                index.textContent = `#${idx + 1}`;
+                const name = document.createElement('span');
+                name.className = 'frame-duration-name';
+                name.textContent = frame.name || `frame-${idx + 1}`;
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.step = '0.01';
+                input.min = '0.01';
+                input.value = String(frame.duration ?? '');
+                input.oninput = () => { frame.custom = true; };
+                input.onchange = () => {
+                    const val = Math.max(0.01, Number(input.value || 0));
+                    frame.duration = val;
+                    frame.custom = true;
+                    input.value = String(val);
+                };
+                const suffix = document.createElement('span');
+                suffix.className = 'frame-duration-suffix';
+                suffix.textContent = '秒';
+                item.append(index, name, input, suffix);
+                clipFrameList.appendChild(item);
+            });
+            const hint = document.createElement('div');
+            hint.className = 'frame-duration-hint';
+            hint.textContent = '提示：預設依 FPS 換算，可單獨調整。';
+            clipFrameList.appendChild(hint);
+        }
+
+        function upgradeAnimalClips() {
+            if (!Array.isArray(project.animals)) return;
+            project.animals.forEach(an => {
+                if (!Array.isArray(an.clips)) an.clips = [];
+                an.clips.forEach(normalizeClipFrames);
+            });
+        }
+
+        clipFrames.onchange = async () => {
+            const files = Array.from(clipFrames.files || []);
+            if (files.length === 0) {
+                selectedClipFrames = [];
+                renderClipFrameDurations();
+                return;
+            }
+            if (clipFrameList) {
+                clipFrameList.innerHTML = '';
+                const loading = document.createElement('div');
+                loading.className = 'frame-duration-empty';
+                loading.textContent = '載入中...';
+                clipFrameList.appendChild(loading);
+            }
+            const fps = Math.max(1, Number(clipFps.value || 6));
+            const defaultDuration = 1 / fps;
+            const loaded = [];
+            try {
+                for (const file of files) {
+                    const src = await fileToDataUrl(file);
+                    loaded.push({
+                        id: uid(),
+                        name: file.name || `frame-${loaded.length + 1}`,
+                        src,
+                        duration: defaultDuration,
+                        custom: false
+                    });
+                }
+                selectedClipFrames = loaded;
+            } catch (err) {
+                console.error('Failed to load clip frames', err);
+                alert('載入動畫幀失敗：' + (err.message || '未知錯誤'));
+                selectedClipFrames = [];
+            }
+            renderClipFrameDurations();
+        };
+
+        clipFps.onchange = () => {
+            const fps = Math.max(1, Number(clipFps.value || 6));
+            const defaultDuration = 1 / fps;
+            let changed = false;
+            selectedClipFrames.forEach(frame => {
+                if (!frame.custom) {
+                    frame.duration = defaultDuration;
+                    changed = true;
+                }
+            });
+            if (changed) renderClipFrameDurations();
+        };
+
+        renderClipFrameDurations();
 
         addClip.onclick = async () => {
-            const name = clipName.value.trim(); if (!name) return alert('請輸入動畫名稱');
+            const name = clipName.value.trim();
+            if (!name) return alert('請輸入動畫名稱');
             const fps = Math.max(1, Number(clipFps.value || 6));
-            const files = Array.from(clipFrames.files || []);
-            if (files.length === 0) return alert('請選擇至少 1 張幀圖片');
-            const frames = await Promise.all(files.map(fileToDataUrl));
+            if (selectedClipFrames.length === 0) return alert('請選擇至少 1 張幀圖片');
+            const fallbackDuration = 1 / fps;
+            const frames = selectedClipFrames.map(frame => {
+                const duration = Math.max(0.01, Number(frame.duration) || fallbackDuration);
+                return { src: frame.src, duration };
+            }).filter(f => !!f.src);
+            if (frames.length === 0) return alert('請選擇至少 1 張有效的幀圖片');
+            const totalSeconds = frames.reduce((sum, frame) => sum + frame.duration, 0);
             tempClips.push({ name, fps, frames });
-            clipName.value = ''; clipFps.value = '6'; clipFrames.value = '';
-            alert(`已加入動畫 ${name}（${frames.length} 幀）`);
+            clipName.value = '';
+            clipFps.value = '6';
+            clipFrames.value = '';
+            selectedClipFrames = [];
+            renderClipFrameDurations();
+            alert(`已加入動畫 ${name}（${frames.length} 幀，總時長 ${totalSeconds.toFixed(2)} 秒）`);
         };
 
         addAnimal.onclick = async () => {
@@ -2039,6 +2230,7 @@
 
             const existing = project.animals.find(a => a.name === name);
             if (existing) {
+                if (!Array.isArray(existing.clips)) existing.clips = [];
                 existing.previewDataUrl = previewDataUrl || existing.previewDataUrl;
                 existing.clips.push(...tempClips);
                 if (aTerrains.length > 0) existing.spawnTerrains = aTerrains;
@@ -2053,12 +2245,17 @@
         };
 
         function renderAnimals() {
+            upgradeAnimalClips();
             animalList.innerHTML = '';
             project.animals.forEach(an => {
                 const card = cloneCard();
                 card.querySelector('img').src = an.previewDataUrl || placeholderIcon();
                 card.querySelector('.title').textContent = an.name;
-                const clipSummary = an.clips.map(c => `${c.name}(${c.fps}fps/${c.frames.length}幀)`).join('，') || '-';
+                const clipSummary = (an.clips || []).map(c => {
+                    const frames = normalizeClipFrames(c);
+                    const totalSec = frames.reduce((sum, frame) => sum + frame.duration, 0);
+                    return `${c.name}(${frames.length}幀/${totalSec.toFixed(2)}秒)`;
+                }).join('，') || '-';
                 const terrainsText = (an.spawnTerrains || []).map(id => project.terrains.find(t => t.id === id)?.name || id).join(', ') || '-';
                 card.querySelector('.kvs').innerHTML = `<div>ID</div><div>${an.id}</div><div>動畫</div><div>${clipSummary}</div><div>生成地形</div><div>${terrainsText}</div>`;
                 card.querySelector('.edit').onclick = () => {
@@ -2095,12 +2292,17 @@
         // Animation preview loop
         const animCanvas = document.getElementById('animCanvas');
         const actx = animCanvas.getContext('2d');
-        let animTimer = 0, animIdx = 0, loadedFrames = [];
+        let animTimer = 0, animIdx = 0, loadedFrames = [], animLastTs = 0;
         function loadPreviewFrames() {
-            const an = project.animals.find(a => a.id === previewAnimal.value); if (!an) { loadedFrames = []; return; }
-            const c = an.clips.find(x => x.name === previewClip.value); if (!c) { loadedFrames = []; return; }
-            loadedFrames = c.frames.map(src => { const img = new Image(); img.src = src; return img; });
-            animIdx = 0; animTimer = 0;
+            const an = project.animals.find(a => a.id === previewAnimal.value); if (!an) { loadedFrames = []; animLastTs = 0; return; }
+            const c = (an.clips || []).find(x => x.name === previewClip.value); if (!c) { loadedFrames = []; animLastTs = 0; return; }
+            const frames = normalizeClipFrames(c);
+            loadedFrames = frames.map(frame => {
+                const img = new Image();
+                img.src = frame.src;
+                return { img, duration: frame.duration };
+            });
+            animIdx = 0; animTimer = 0; animLastTs = 0;
         }
         previewClip.onchange = loadPreviewFrames;
         previewSpeed.oninput = () => { };
@@ -2110,11 +2312,22 @@
             actx.clearRect(0, 0, animCanvas.width, animCanvas.height);
             const an = project.animals.find(a => a.id === previewAnimal.value);
             const c = an?.clips.find(x => x.name === previewClip.value);
-            if (!an || !c || loadedFrames.length === 0) return;
+            if (!an || !c || loadedFrames.length === 0) { animLastTs = ts; return; }
+            const dt = animLastTs ? Math.max(0, (ts - animLastTs) / 1000) : 0;
+            animLastTs = ts;
             const sp = Math.max(0.1, Number(previewSpeed.value || 1));
-            animTimer += (sp * (c.fps / 60));
-            if (animTimer >= 1) { animTimer = 0; animIdx = (animIdx + 1) % loadedFrames.length; }
-            const img = loadedFrames[animIdx];
+            let frameData = loadedFrames[animIdx];
+            if (!frameData) return;
+            animTimer += dt * sp;
+            let guard = 0;
+            while (frameData && animTimer >= Math.max(0.01, frameData.duration) && guard < loadedFrames.length * 4) {
+                animTimer -= Math.max(0.01, frameData.duration);
+                animIdx = (animIdx + 1) % loadedFrames.length;
+                frameData = loadedFrames[animIdx];
+                guard++;
+            }
+            const img = frameData?.img;
+            if (!img || !img.complete || !img.width || !img.height) return;
             const scale = Math.min(animCanvas.width / img.width, animCanvas.height / img.height);
             const w = img.width * scale, h = img.height * scale; const x = (animCanvas.width - w) / 2, y = (animCanvas.height - h) / 2;
             actx.imageSmoothingEnabled = false;
@@ -2124,8 +2337,10 @@
         setInterval(loadPreviewFrames, 500);
 
         // ----------------------------- Entities / Hitboxes -----------------------------
+        const eSource = document.getElementById('eSource');
         const eName = document.getElementById('eName');
         const eImage = document.getElementById('eImage');
+        const eImageRow = eImage?.closest('.row') || null;
         const hitCanvas = document.getElementById('hitCanvas');
         const hctx = hitCanvas.getContext('2d');
         const hitList = document.getElementById('hitList');
@@ -2134,14 +2349,337 @@
         const entityList = document.getElementById('entityList');
 
         let entityImage = null; // HTMLImageElement
+        let entityImageSource = null;
         let hitboxes = []; // {id,x,y,w,h} normalized
         let drag = null; // {id, mode:'move'|'resize', ox, oy, corner}
+        let entitySources = [];
+        let currentEntityKey = null;
+        let currentEntitySource = null;
+        let pendingNewCustomKey = null;
+        let needsEntityUpgradeSave = false;
+
+        const CUSTOM_NEW_SENTINEL = '__custom_new__';
+        const ENTITY_TYPE_LABELS = { item: '物品', animal: '生物', custom: '自訂', unknown: '未知' };
+
+        function upgradeEntityRecords() {
+            if (!Array.isArray(project.entities)) project.entities = [];
+            project.entities.forEach(en => {
+                if (!en || typeof en !== 'object') return;
+                if (!en.id) { en.id = 'entity_' + uid(); needsEntityUpgradeSave = true; }
+                if (!en.sourceKey) {
+                    if (en.sourceType && en.sourceId) {
+                        en.sourceKey = `${en.sourceType}:${en.sourceId}`;
+                    } else {
+                        en.sourceType = 'custom';
+                        en.sourceId = en.id;
+                        en.sourceKey = `custom:${en.id}`;
+                    }
+                    needsEntityUpgradeSave = true;
+                }
+                if (!en.sourceType && en.sourceKey) {
+                    en.sourceType = en.sourceKey.split(':')[0] || 'custom';
+                    needsEntityUpgradeSave = true;
+                }
+                if (!en.sourceId && en.sourceKey) {
+                    const parts = en.sourceKey.split(':');
+                    if (parts.length > 1) {
+                        en.sourceId = parts.slice(1).join(':');
+                        needsEntityUpgradeSave = true;
+                    }
+                }
+            });
+        }
+
+        upgradeEntityRecords();
+
+        function findEntityEntryByKey(key) {
+            if (!key) return undefined;
+            return (project.entities || []).find(en => en && en.sourceKey === key);
+        }
+
+        function loadEntityImage(src) {
+            entityImageSource = src || null;
+            if (!src) {
+                entityImage = null;
+                drawHitCanvas();
+                return;
+            }
+            const img = new Image();
+            entityImage = img;
+            img.onload = () => drawHitCanvas();
+            img.onerror = () => { entityImage = null; drawHitCanvas(); };
+            img.src = src;
+        }
+
+        function updateImageInputState(type) {
+            const isCustom = type === 'custom';
+            if (eImageRow) eImageRow.style.display = isCustom ? '' : 'none';
+            if (eImage) eImage.disabled = !isCustom;
+        }
 
         eImage.onchange = async () => {
             if (!eImage.files || !eImage.files[0]) return;
             const dataUrl = await fileToDataUrl(eImage.files[0]);
-            entityImage = new Image(); entityImage.src = dataUrl; entityImage.onload = drawHitCanvas;
+            loadEntityImage(dataUrl);
         };
+
+        function cloneHitboxesFromEntry(entry) {
+            if (!entry || !Array.isArray(entry.hitboxes)) return [];
+            return entry.hitboxes.map(b => ({ id: b.id || uid(), x: b.x, y: b.y, w: b.w, h: b.h }));
+        }
+
+        function getAnimalPreview(an) {
+            if (!an) return placeholderIcon();
+            if (an.previewDataUrl) return an.previewDataUrl;
+            if (an.image && an.image.path) return an.image.path;
+            if (Array.isArray(an.clips)) {
+                for (const clip of an.clips) {
+                    const frames = normalizeClipFrames(clip);
+                    const first = frames.find(f => f && f.src);
+                    if (first && first.src) return first.src;
+                }
+            }
+            return placeholderIcon();
+        }
+
+        function collectEntitySources() {
+            const entries = new Map();
+            if (Array.isArray(project.entities)) {
+                project.entities.forEach(en => {
+                    if (!en || typeof en !== 'object') return;
+                    if (!en.sourceKey) return;
+                    entries.set(en.sourceKey, en);
+                });
+            }
+            const used = new Set();
+            const sources = [];
+            const categoryMap = new Map((project.itemCategories || []).map(cat => [cat.id, cat]));
+
+            (project.items || []).forEach(item => {
+                if (!item || !item.id) return;
+                const key = `item:${item.id}`;
+                const entry = entries.get(key);
+                const category = categoryMap.get(item.categoryId);
+                const imageSrc = (item.image && item.image.path) || placeholderIcon();
+                sources.push({
+                    key,
+                    type: 'item',
+                    sourceId: item.id,
+                    baseName: item.name || item.id,
+                    displayName: (entry && entry.name) || item.name || item.id,
+                    categoryLabel: category?.label || dropLabelFallback[item.categoryId] || item.categoryId || '',
+                    imageSrc,
+                    entry
+                });
+                used.add(key);
+            });
+
+            (project.animals || []).forEach(an => {
+                if (!an || !an.id) return;
+                const key = `animal:${an.id}`;
+                const entry = entries.get(key);
+                sources.push({
+                    key,
+                    type: 'animal',
+                    sourceId: an.id,
+                    baseName: an.name || an.id,
+                    displayName: (entry && entry.name) || an.name || an.id,
+                    categoryLabel: '生物',
+                    imageSrc: getAnimalPreview(an),
+                    entry
+                });
+                used.add(key);
+            });
+
+            entries.forEach((entry, key) => {
+                if (used.has(key)) return;
+                const type = entry.sourceType || (key.startsWith('custom:') ? 'custom' : 'unknown');
+                const sourceId = entry.sourceId || key.replace(/^custom:/, '');
+                const imageSrc = entry.imageDataUrl || entry.imagePath || placeholderIcon();
+                sources.push({
+                    key,
+                    type,
+                    sourceId,
+                    baseName: entry.name || sourceId || key,
+                    displayName: entry.name || sourceId || key,
+                    categoryLabel: type === 'custom' ? '自訂' : '未知',
+                    imageSrc,
+                    entry,
+                    orphan: type !== 'custom'
+                });
+            });
+
+            const typeOrder = { item: 0, animal: 1, custom: 2, unknown: 3 };
+            sources.sort((a, b) => {
+                const ao = typeOrder[a.type] ?? 99;
+                const bo = typeOrder[b.type] ?? 99;
+                if (ao !== bo) return ao - bo;
+                return (a.baseName || '').localeCompare(b.baseName || '', 'zh-Hant');
+            });
+            return sources;
+        }
+
+        function formatEntityOption(src) {
+            const typeLabel = ENTITY_TYPE_LABELS[src.type] || '其他';
+            const hitCount = src.entry && Array.isArray(src.entry.hitboxes) ? src.entry.hitboxes.length : 0;
+            const hitText = hitCount > 0 ? `（${hitCount} 框）` : '（尚未設定）';
+            const idText = src.sourceId ? ` [${src.sourceId}]` : '';
+            return `[${typeLabel}] ${src.baseName}${idText} ${hitText}`;
+        }
+
+        function refreshEntitySourceOptions() {
+            if (!eSource) return;
+            const selectedValue = pendingNewCustomKey ? CUSTOM_NEW_SENTINEL : currentEntityKey;
+            eSource.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '選擇來源（物品 / 動物 或自訂）';
+            eSource.appendChild(placeholder);
+            const customOpt = document.createElement('option');
+            customOpt.value = CUSTOM_NEW_SENTINEL;
+            customOpt.textContent = '＋ 新增自訂生物底圖';
+            eSource.appendChild(customOpt);
+            entitySources.forEach(src => {
+                const opt = document.createElement('option');
+                opt.value = src.key;
+                opt.textContent = formatEntityOption(src);
+                eSource.appendChild(opt);
+            });
+            const validValues = new Set(Array.from(eSource.options).map(opt => opt.value));
+            if (selectedValue && validValues.has(selectedValue)) {
+                eSource.value = selectedValue;
+            } else if (pendingNewCustomKey) {
+                eSource.value = CUSTOM_NEW_SENTINEL;
+            } else {
+                eSource.value = '';
+            }
+        }
+
+        function renderEntityCards() {
+            entityList.innerHTML = '';
+            if (entitySources.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'note';
+                empty.textContent = '尚未同步到任何物品或動物資料，可先新增後再設定碰撞框。';
+                entityList.appendChild(empty);
+                return;
+            }
+            entitySources.forEach(src => {
+                const card = cloneCard();
+                card.querySelector('img').src = src.imageSrc || placeholderIcon();
+                card.querySelector('.title').textContent = src.displayName || src.baseName || src.key;
+                const kvs = [];
+                const typeLabel = ENTITY_TYPE_LABELS[src.type] || src.type;
+                kvs.push('<div>類型</div><div>' + typeLabel + '</div>');
+                if (src.sourceId) kvs.push('<div>來源ID</div><div>' + src.sourceId + '</div>');
+                if (src.type === 'item' && src.categoryLabel) kvs.push('<div>分類</div><div>' + src.categoryLabel + '</div>');
+                const hitCount = src.entry && Array.isArray(src.entry.hitboxes) ? src.entry.hitboxes.length : 0;
+                kvs.push('<div>碰撞框</div><div>' + (hitCount > 0 ? `${hitCount} 個` : '尚未設定') + '</div>');
+                if (src.orphan) kvs.push('<div>狀態</div><div>來源不存在</div>');
+                card.querySelector('.kvs').innerHTML = kvs.join('');
+                card.querySelector('.edit').onclick = () => {
+                    switchTab('entities');
+                    selectEntitySource(src.key);
+                };
+                const delBtn = card.querySelector('.del');
+                if (src.entry) {
+                    delBtn.textContent = '清除碰撞框';
+                    delBtn.disabled = false;
+                    delBtn.onclick = () => {
+                        if (!confirm('清除此來源的所有碰撞框？')) return;
+                        project.entities = project.entities.filter(en => en !== src.entry);
+                        if (currentEntityKey === src.key) {
+                            hitboxes = [];
+                            renderHitList();
+                        }
+                        saveProject();
+                    };
+                } else {
+                    delBtn.textContent = '尚未設定';
+                    delBtn.disabled = true;
+                    delBtn.onclick = null;
+                }
+                entityList.appendChild(card);
+            });
+        }
+
+        function selectEntitySource(key, { resetHitboxes = true } = {}) {
+            if (!key) {
+                currentEntityKey = null;
+                currentEntitySource = null;
+                pendingNewCustomKey = null;
+                updateImageInputState(null);
+                hitboxes = [];
+                entityImage = null;
+                entityImageSource = null;
+                eImage.value = '';
+                drawHitCanvas();
+                renderHitList();
+                refreshEntitySourceOptions();
+                return;
+            }
+            pendingNewCustomKey = null;
+            currentEntityKey = key;
+            const source = entitySources.find(s => s.key === key) || null;
+            currentEntitySource = source;
+            if (!source) {
+                updateImageInputState(null);
+                hitboxes = [];
+                entityImage = null;
+                entityImageSource = null;
+                drawHitCanvas();
+                renderHitList();
+                refreshEntitySourceOptions();
+                return;
+            }
+            updateImageInputState(source.type);
+            const entry = findEntityEntryByKey(key);
+            if (source.type === 'custom') {
+                const imgSrc = entry?.imageDataUrl || entry?.imagePath || null;
+                loadEntityImage(imgSrc);
+            } else {
+                const imgSrc = source.imageSrc || placeholderIcon();
+                if (entityImageSource !== imgSrc) loadEntityImage(imgSrc);
+            }
+            if (resetHitboxes) {
+                hitboxes = cloneHitboxesFromEntry(entry);
+                renderHitList();
+            }
+            const fallbackName = source.displayName || source.baseName || '';
+            eName.value = entry?.name || fallbackName;
+            refreshEntitySourceOptions();
+            drawHitCanvas();
+        }
+
+        function prepareNewCustomEntity() {
+            const newKey = `custom:${uid()}`;
+            pendingNewCustomKey = newKey;
+            currentEntityKey = newKey;
+            currentEntitySource = { key: newKey, type: 'custom', baseName: '', displayName: '', sourceId: newKey.replace('custom:', '') };
+            updateImageInputState('custom');
+            eName.value = '';
+            eImage.value = '';
+            hitboxes = [];
+            entityImage = null;
+            entityImageSource = null;
+            drawHitCanvas();
+            renderHitList();
+            refreshEntitySourceOptions();
+        }
+
+        if (eSource) {
+            eSource.onchange = () => {
+                if (eSource.value === CUSTOM_NEW_SENTINEL) {
+                    prepareNewCustomEntity();
+                    return;
+                }
+                if (!eSource.value) {
+                    selectEntitySource(null);
+                    return;
+                }
+                selectEntitySource(eSource.value);
+            };
+        }
 
         function toCanvas(px, py) { return { x: px * hitCanvas.width, y: py * hitCanvas.height }; }
         function toNorm(cx, cy) { return { x: cx / hitCanvas.width, y: cy / hitCanvas.height }; }
@@ -2158,18 +2696,16 @@
                 hctx.strokeStyle = '#7cffc4'; hctx.setLineDash([6, 4]); hctx.lineWidth = 2; hctx.strokeRect(x, y, rx - x, ry - y);
                 hctx.setLineDash([]);
                 hctx.fillStyle = 'rgba(124,255,196,0.15)'; hctx.fillRect(x, y, rx - x, ry - y);
-                // handles
                 drawHandle(x, y); drawHandle(rx, y); drawHandle(x, ry); drawHandle(rx, ry);
             });
         }
         function drawHandle(x, y) { hctx.fillStyle = '#7aa2ff'; hctx.fillRect(x - 5, y - 5, 10, 10); }
 
         function hitAt(cx, cy) {
-            // return {box, corner} corner in ['tl','tr','bl','br',null]
             for (const b of [...hitboxes].slice().reverse()) {
                 const { x, y } = toCanvas(b.x, b.y); const { x: rx, y: ry } = toCanvas(b.x + b.w, b.y + b.h);
                 const inBox = cx >= x && cy >= y && cx <= rx && cy <= ry;
-                const csize = 14; // bigger grab area
+                const csize = 14;
                 const corners = [{ k: 'tl', X: x, Y: y }, { k: 'tr', X: rx, Y: y }, { k: 'bl', X: x, Y: ry }, { k: 'br', X: rx, Y: ry }];
                 for (const c of corners) { if (Math.abs(cx - c.X) <= csize && Math.abs(cy - c.Y) <= csize) return { box: b, corner: c.k }; }
                 if (inBox) return { box: b, corner: null };
@@ -2181,12 +2717,12 @@
         hitCanvas.onpointerdown = e => {
             const rect = hitCanvas.getBoundingClientRect(); const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
             const h = hitAt(cx, cy);
-            if (e.button === 2 && h) { // right-click delete
+            if (e.button === 2 && h) {
                 hitboxes = hitboxes.filter(x => x !== h.box); drawHitCanvas(); renderHitList(); return;
             }
             if (h) {
                 drag = { id: h.box.id, mode: h.corner ? 'resize' : 'move', ox: cx, oy: cy, corner: h.corner };
-            } else if (e.button === 0 && e.shiftKey) { // 只有按住 Shift 才新增
+            } else if (e.button === 0 && e.shiftKey) {
                 const { x, y } = toNorm(cx, cy); const b = { id: uid(), x, y, w: 0.01, h: 0.01 }; hitboxes.push(b); drag = { id: b.id, mode: 'resize', ox: cx, oy: cy, corner: 'br' };
             }
             drawHitCanvas(); renderHitList();
@@ -2216,48 +2752,108 @@
             b.y = Math.max(0, Math.min(1 - b.h, b.y));
         }
 
-        clearHitboxes.onclick = () => { if (confirm('清空所有碰撞框？')) { hitboxes = []; drawHitCanvas(); renderHitList(); } };
+        clearHitboxes.onclick = () => {
+            if (!currentEntityKey && !pendingNewCustomKey) {
+                alert('請先選擇要編輯的來源');
+                return;
+            }
+            if (confirm('清空目前畫布的碰撞框？')) { hitboxes = []; drawHitCanvas(); renderHitList(); }
+        };
 
         saveEntity.onclick = async () => {
-            const name = eName.value.trim(); if (!name) return alert('請輸入生物名稱');
-            if (!entityImage) return alert('請先選擇底圖');
-            const id = name.toLowerCase().replace(/\s+/g, '_') + '_' + uid();
-            const imageDataUrl = entityImage.src;
-            project.entities.push({ id, name, imageDataUrl, hitboxes: JSON.parse(JSON.stringify(hitboxes)) });
-            eName.value = ''; eImage.value = ''; entityImage = null; hitboxes = []; drawHitCanvas(); renderHitList(); saveProject();
+            if (!currentEntityKey) {
+                alert('請先選擇來源或新增自訂生物');
+                return;
+            }
+            const sourceType = currentEntitySource?.type || currentEntityKey.split(':')[0] || 'custom';
+            const sourceId = currentEntitySource?.sourceId || currentEntityKey.split(':').slice(1).join(':') || currentEntityKey;
+            const defaultName = currentEntitySource?.displayName || currentEntitySource?.baseName || sourceId || '';
+            const name = eName.value.trim() || defaultName;
+            if (!name) return alert('請輸入生物名稱');
+            if (!entityImage) return alert('請先載入底圖');
+
+            let entry = findEntityEntryByKey(currentEntityKey);
+            if (!entry) {
+                entry = {
+                    id: 'entity_' + uid(),
+                    sourceKey: currentEntityKey,
+                    sourceType,
+                    sourceId,
+                    createdAt: new Date().toISOString()
+                };
+                project.entities.push(entry);
+            }
+            entry.sourceKey = currentEntityKey;
+            entry.sourceType = sourceType;
+            entry.sourceId = sourceId;
+            entry.name = name;
+            entry.hitboxes = JSON.parse(JSON.stringify(hitboxes));
+            entry.updatedAt = new Date().toISOString();
+            if (sourceType === 'custom') {
+                entry.imageDataUrl = entityImageSource || (entityImage?.src ?? entry.imageDataUrl ?? null);
+            } else {
+                delete entry.imageDataUrl;
+            }
+            pendingNewCustomKey = null;
+            saveProject();
         };
 
         function renderHitList() {
             hitList.innerHTML = '';
+            if (hitboxes.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'small';
+                empty.textContent = '尚未設定碰撞框';
+                hitList.appendChild(empty);
+                return;
+            }
             hitboxes.forEach((b, i) => {
                 const div = document.createElement('div'); div.className = 'row';
-                div.innerHTML = `<label>#${i + 1}</label><div class="chips">` +
-                    `<span class="chip">x:${b.x.toFixed(3)}</span>` +
-                    `<span class="chip">y:${b.y.toFixed(3)}</span>` +
-                    `<span class="chip">w:${b.w.toFixed(3)}</span>` +
-                    `<span class="chip">h:${b.h.toFixed(3)}</span>` + `</div>`;
+                div.innerHTML = `<label>#${i + 1}</label><div class="chips">`
+                    + `<span class="chip">x:${b.x.toFixed(3)}</span>`
+                    + `<span class="chip">y:${b.y.toFixed(3)}</span>`
+                    + `<span class="chip">w:${b.w.toFixed(3)}</span>`
+                    + `<span class="chip">h:${b.h.toFixed(3)}</span>` + `</div>`;
                 hitList.appendChild(div);
             });
         }
 
         function renderEntities() {
-            entityList.innerHTML = '';
-            project.entities.forEach(en => {
-                const card = cloneCard();
-                card.querySelector('img').src = en.imageDataUrl || placeholderIcon();
-                card.querySelector('.title').textContent = en.name;
-                card.querySelector('.kvs').innerHTML = `<div>ID</div><div>${en.id}</div><div>碰撞框</div><div>${en.hitboxes.length} 個</div>`;
-                card.querySelector('.edit').onclick = () => {
-                    // load into editor
-                    eName.value = en.name;
-                    entityImage = new Image(); entityImage.src = en.imageDataUrl; entityImage.onload = drawHitCanvas;
-                    hitboxes = JSON.parse(JSON.stringify(en.hitboxes)); drawHitCanvas(); renderHitList();
-                };
-                card.querySelector('.del').onclick = () => { if (confirm('刪除此生物？')) { project.entities = project.entities.filter(x => x.id !== en.id); saveProject(); } };
-                entityList.appendChild(card);
-            });
+            entitySources = collectEntitySources();
+            if (!pendingNewCustomKey && currentEntityKey) {
+                const source = entitySources.find(s => s.key === currentEntityKey) || null;
+                if (!source) {
+                    currentEntitySource = null;
+                    currentEntityKey = null;
+                    updateImageInputState(null);
+                    hitboxes = [];
+                    entityImage = null;
+                    entityImageSource = null;
+                    drawHitCanvas();
+                    renderHitList();
+                } else {
+                    currentEntitySource = source;
+                    if (source.type !== 'custom') {
+                        const imgSrc = source.imageSrc || placeholderIcon();
+                        if (entityImageSource !== imgSrc) loadEntityImage(imgSrc);
+                    }
+                }
+            }
+            if (pendingNewCustomKey) {
+                updateImageInputState('custom');
+            } else if (currentEntitySource) {
+                updateImageInputState(currentEntitySource.type);
+            } else {
+                updateImageInputState(null);
+            }
+            refreshEntitySourceOptions();
+            renderEntityCards();
         }
 
+        if (needsEntityUpgradeSave) {
+            needsEntityUpgradeSave = false;
+            saveProject();
+        }
         // ----------------------------- Import / Export / Reset -----------------------------
         document.getElementById('btnExport').onclick = () => {
             const file = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
