@@ -1,7 +1,21 @@
 (function(){
   window.ItemDrops = window.ItemDrops || {};
   const UI = { block:null, list:null };
-  const SOURCE_TYPES = [{id:'entity',label:'動畫生物'},{id:'crop',label:'農作物'},{id:'mineral',label:'礦物'},{id:'tree',label:'樹木'}];
+  const SOURCE_TYPES = [
+    {id:'entity',label:'動畫生物'},
+    {id:'animal',label:'生物'},
+    {id:'decor',label:'裝飾'},
+    {id:'interactive',label:'可互動'},
+    {id:'building',label:'建材'},
+    {id:'resource',label:'素材'},
+    {id:'consumable',label:'消耗品'},
+    {id:'crop',label:'農作物'},
+    {id:'mineral',label:'礦物'},
+    {id:'tree',label:'樹木'},
+    {id:'material',label:'素材'},
+    {id:'weapon',label:'武器'},
+    {id:'armor',label:'防具'}
+  ];
   function ensureDropsArray(item){ if(!item.drops||!Array.isArray(item.drops)) item.drops=[]; }
   function clamp01(v){ v=parseFloat(v); if(isNaN(v)) return 0; return Math.max(0, Math.min(1, v)); }
   function makeSelect(opts,value){ const s=document.createElement('select'); opts.forEach(o=>{const op=document.createElement('option'); op.value=o.id; op.textContent=o.label; if(o.id===value) op.selected=true; s.appendChild(op);}); return s; }
