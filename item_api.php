@@ -14,20 +14,20 @@ $itemsDir = __DIR__ . '/Items';
 $jsonPath = $itemsDir . '/items.json';
 $allowedExt = ['png','jpg','jpeg','gif','webp'];
 $maxUpload  = 5 * 1024 * 1024;
-$allowedSources = ['entity','crop','mineral','tree'];
+$allowedSources = ['entity','material','weapon','armor','decor','interactive','building','resource','consumable','crop','mineral','tree','animal'];
 
 function respond($code, $payload) {
   http_response_code($code);
   echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
   exit;
 }
-function ensure_dir($path){
-  if (!is_dir($path)) {
-    if (!@mkdir($path, 0777, true) && !is_dir($path)) {
-      respond(500, ["status"=>"error","message"=>"無法建立 Items 目錄（可能無權限）"]);
-    }
+function ensure_dir($path, $fatal = true){
+  if (is_dir($path)) { @chmod($path, 0777); return true; }
+  if (@mkdir($path, 0777, true) || is_dir($path)) { @chmod($path, 0777); return true; }
+  if ($fatal) {
+    respond(500, ["status"=>"error","message"=>"無法建立 Items 目錄（可能無權限）"]);
   }
-  @chmod($path, 0777); // best-effort
+  return false;
 }
 function try_save_items($jsonPath, $data){
   ensure_dir(dirname($jsonPath));
@@ -35,7 +35,16 @@ function try_save_items($jsonPath, $data){
   $tmp  = $jsonPath . '.tmp_' . substr(sha1((string)microtime(true)), 0, 6);
   $bytes = @file_put_contents($tmp, $json, LOCK_EX);
   if ($bytes === false) {
-    respond(500, ["status"=>"error","message"=>"無法在 Items 目錄內建立暫存檔（可能無寫入權限）"]);
+    @unlink($tmp);
+    $fallbackBytes = false;
+    if (is_file($jsonPath) && @is_writable($jsonPath)) {
+      $fallbackBytes = @file_put_contents($jsonPath, $json, LOCK_EX);
+    }
+    if ($fallbackBytes === false) {
+      respond(500, ["status"=>"error","message"=>"無法寫入 items.json（暫存檔建立失敗且原檔不可寫）"]);
+    }
+    @chmod($jsonPath, 0666);
+    return;
   }
   if (!@rename($tmp, $jsonPath)) {
     @unlink($tmp);
@@ -156,7 +165,7 @@ if ($action === 'create') {
 
   $slug = slugify($name);
   $id   = $slug.'_'.substr(sha1(uniqid('',true)),0,6);
-  $itemDir = $itemsDir.'/'.$id; ensure_dir($itemDir);
+  $itemDir = $itemsDir.'/'.$id;
 
   $imageMeta = null;
   if (!empty($_FILES['image']) && (($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE)) {
@@ -167,10 +176,15 @@ if ($action === 'create') {
     $nameOrig = (string)($_FILES['image']['name'] ?? 'image');
     $ext = strtolower(pathinfo($nameOrig, PATHINFO_EXTENSION));
     if (!in_array($ext, $allowedExt, true)) respond(400, ["status"=>"error","handledAction"=>"create","message"=>"invalid image ext"]);
-    $safe='image.'.$ext; $dest=$itemDir.'/'.$safe;
+    $useSubdir = ensure_dir($itemDir, false);
+    if (!$useSubdir) ensure_dir($itemsDir);
+    $safe = $useSubdir ? ('image.'.$ext) : ($id.'_'.substr(sha1((string)microtime(true)),0,6).'.'.$ext);
+    $destDir = $useSubdir ? $itemDir : $itemsDir;
+    $dest = $destDir.'/'.$safe;
     if (!@move_uploaded_file($_FILES['image']['tmp_name'], $dest)) respond(500, ["status"=>"error","handledAction"=>"create","message"=>"failed to save image"]);
     @chmod($dest, 0666);
-    $imageMeta=["filename"=>$safe,"path"=>"Items/$id/$safe","label"=>($_POST['imageLabel'] ?? ""), "uploadedAt"=>gmdate('c')];
+    $pathRel = 'Items/'.($useSubdir ? ($id.'/'.$safe) : $safe);
+    $imageMeta=["filename"=>$safe,"path"=>$pathRel,"label"=>($_POST['imageLabel'] ?? ""), "uploadedAt"=>gmdate('c')];
   }
 
   $item = [
@@ -198,21 +212,27 @@ if ($action === 'update') {
   if(isset($_POST['drops'])){ $items[$idx]['drops']=parse_drops_from_request('drops'); $changed=true; }
 
   // 圖片處理
-  $dir = $itemsDir.'/'.$id; ensure_dir($dir);
+  $dir = $itemsDir.'/'.$id;
   if (!empty($_FILES['image']) && (($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE)) {
     $err = (int)$_FILES['image']['error']; if($err!==UPLOAD_ERR_OK) respond(400, ["status"=>"error","handledAction"=>"update","message"=>"image upload error: $err"]);
     $size = (int)($_FILES['image']['size'] ?? 0); if($size>$maxUpload) respond(400, ["status"=>"error","handledAction"=>"update","message"=>"image too large"]);
     $nameOrig = (string)($_FILES['image']['name'] ?? 'image');
     $ext = strtolower(pathinfo($nameOrig, PATHINFO_EXTENSION));
     if(!in_array($ext,$allowedExt,true)) respond(400, ["status"=>"error","handledAction"=>"update","message"=>"invalid image ext"]);
-    if(isset($items[$idx]['image']['filename'])){ @unlink($dir.'/'.$items[$idx]['image']['filename']); }
-    $safe='image.'.$ext; $dest=$dir.'/'.$safe; if(!@move_uploaded_file($_FILES['image']['tmp_name'],$dest)) respond(500, ["status"=>"error","handledAction"=>"update","message"=>"failed to save image"]);
+    if(isset($items[$idx]['image']['path'])){ @unlink(__DIR__.'/'.$items[$idx]['image']['path']); }
+    $useSubdir = ensure_dir($dir, false);
+    if (!$useSubdir) ensure_dir($itemsDir);
+    $safe = $useSubdir ? ('image.'.$ext) : ($id.'_'.substr(sha1((string)microtime(true)),0,6).'.'.$ext);
+    $destDir = $useSubdir ? $dir : $itemsDir;
+    $dest = $destDir.'/'.$safe;
+    if(!@move_uploaded_file($_FILES['image']['tmp_name'],$dest)) respond(500, ["status"=>"error","handledAction"=>"update","message"=>"failed to save image"]);
     @chmod($dest,0666);
-    $items[$idx]['image']=["filename"=>$safe,"path"=>"Items/$id/$safe","label"=>($_POST['imageLabel'] ?? ($items[$idx]['image']['label'] ?? "")),"uploadedAt"=>gmdate('c')];
+    $pathRel = 'Items/'.($useSubdir ? ($id.'/'.$safe) : $safe);
+    $items[$idx]['image']=["filename"=>$safe,"path"=>$pathRel,"label"=>($_POST['imageLabel'] ?? ($items[$idx]['image']['label'] ?? "")),"uploadedAt"=>gmdate('c')];
     $changed=true;
   }
   if(isset($_POST['removeImage']) && (($_POST['removeImage']==='1')||($_POST['removeImage']==='true'))){
-    if(isset($items[$idx]['image']['filename'])){ @unlink($dir.'/'.$items[$idx]['image']['filename']); }
+    if(isset($items[$idx]['image']['path'])){ @unlink(__DIR__.'/'.$items[$idx]['image']['path']); }
     $items[$idx]['image']=null; $changed=true;
   }
 
@@ -227,6 +247,9 @@ if ($action === 'delete') {
   if ($idx === -1) respond(404, ["status"=>"error","handledAction"=>"delete","message"=>"item not found"]);
 
   $dir=$itemsDir.'/'.$id;
+  if (isset($items[$idx]['image']['path'])) {
+    @unlink(__DIR__.'/'.$items[$idx]['image']['path']);
+  }
   if (is_dir($dir)) { $files=glob($dir.'/*'); if (is_array($files)) foreach($files as $f) if (is_file($f)) @unlink($f); @rmdir($dir); }
 
   array_splice($items,$idx,1); $data['items']=$items; try_save_items($jsonPath,$data);
