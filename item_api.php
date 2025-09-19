@@ -166,7 +166,6 @@ if ($action === 'create') {
   $slug = slugify($name);
   $id   = $slug.'_'.substr(sha1(uniqid('',true)),0,6);
   $itemDir = $itemsDir.'/'.$id;
-  ensure_dir($itemDir);
 
   $imageMeta = null;
   if (!empty($_FILES['image']) && (($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE)) {
@@ -177,11 +176,14 @@ if ($action === 'create') {
     $nameOrig = (string)($_FILES['image']['name'] ?? 'image');
     $ext = strtolower(pathinfo($nameOrig, PATHINFO_EXTENSION));
     if (!in_array($ext, $allowedExt, true)) respond(400, ["status"=>"error","handledAction"=>"create","message"=>"invalid image ext"]);
-    $safe='image.'.$ext;
-    $dest=$itemDir.'/'.$safe;
+    $useSubdir = ensure_dir($itemDir, false);
+    if (!$useSubdir) ensure_dir($itemsDir);
+    $safe = $useSubdir ? ('image.'.$ext) : ($id.'_'.substr(sha1((string)microtime(true)),0,6).'.'.$ext);
+    $destDir = $useSubdir ? $itemDir : $itemsDir;
+    $dest = $destDir.'/'.$safe;
     if (!@move_uploaded_file($_FILES['image']['tmp_name'], $dest)) respond(500, ["status"=>"error","handledAction"=>"create","message"=>"failed to save image"]);
     @chmod($dest, 0666);
-    $pathRel = "Items/$id/$safe";
+    $pathRel = 'Items/'.($useSubdir ? ($id.'/'.$safe) : $safe);
     $imageMeta=["filename"=>$safe,"path"=>$pathRel,"label"=>($_POST['imageLabel'] ?? ""), "uploadedAt"=>gmdate('c')];
   }
 
@@ -210,19 +212,22 @@ if ($action === 'update') {
   if(isset($_POST['drops'])){ $items[$idx]['drops']=parse_drops_from_request('drops'); $changed=true; }
 
   // 圖片處理
-  $dir = $itemsDir.'/'.$id; ensure_dir($dir);
+  $dir = $itemsDir.'/'.$id;
   if (!empty($_FILES['image']) && (($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE)) {
     $err = (int)$_FILES['image']['error']; if($err!==UPLOAD_ERR_OK) respond(400, ["status"=>"error","handledAction"=>"update","message"=>"image upload error: $err"]);
     $size = (int)($_FILES['image']['size'] ?? 0); if($size>$maxUpload) respond(400, ["status"=>"error","handledAction"=>"update","message"=>"image too large"]);
     $nameOrig = (string)($_FILES['image']['name'] ?? 'image');
     $ext = strtolower(pathinfo($nameOrig, PATHINFO_EXTENSION));
     if(!in_array($ext,$allowedExt,true)) respond(400, ["status"=>"error","handledAction"=>"update","message"=>"invalid image ext"]);
-    if(isset($items[$idx]['image']['filename'])){ @unlink($dir.'/'.$items[$idx]['image']['filename']); }
     if(isset($items[$idx]['image']['path'])){ @unlink(__DIR__.'/'.$items[$idx]['image']['path']); }
-    $safe='image.'.$ext; $dest=$dir.'/'.$safe;
+    $useSubdir = ensure_dir($dir, false);
+    if (!$useSubdir) ensure_dir($itemsDir);
+    $safe = $useSubdir ? ('image.'.$ext) : ($id.'_'.substr(sha1((string)microtime(true)),0,6).'.'.$ext);
+    $destDir = $useSubdir ? $dir : $itemsDir;
+    $dest = $destDir.'/'.$safe;
     if(!@move_uploaded_file($_FILES['image']['tmp_name'],$dest)) respond(500, ["status"=>"error","handledAction"=>"update","message"=>"failed to save image"]);
     @chmod($dest,0666);
-    $pathRel = "Items/$id/$safe";
+    $pathRel = 'Items/'.($useSubdir ? ($id.'/'.$safe) : $safe);
     $items[$idx]['image']=["filename"=>$safe,"path"=>$pathRel,"label"=>($_POST['imageLabel'] ?? ($items[$idx]['image']['label'] ?? "")),"uploadedAt"=>gmdate('c')];
     $changed=true;
   }
