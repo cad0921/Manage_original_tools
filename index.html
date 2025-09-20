@@ -628,7 +628,8 @@
             width: 100%;
         }
 
-        .row.item-drop-row>label {
+        .row.item-drop-row>label,
+        .row.item-ui-row>label {
             align-self: flex-start;
             padding-top: 6px;
         }
@@ -706,6 +707,107 @@
         .drop-editor .btn-add-drop:disabled {
             opacity: .6;
             cursor: not-allowed;
+        }
+
+        .ui-gallery-host {
+            width: 100%;
+        }
+
+        .ui-gallery {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .ui-gallery-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .ui-gallery-empty {
+            border: 1px dashed rgba(58, 78, 150, 0.4);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--muted);
+            background: rgba(30, 42, 95, 0.45);
+        }
+
+        .ui-thumb {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(64, 90, 180, 0.55);
+            background: linear-gradient(180deg, rgba(30, 45, 105, 0.8), rgba(22, 32, 82, 0.85));
+        }
+
+        .ui-thumb img {
+            width: 100%;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: rgba(4, 9, 28, 0.55);
+        }
+
+        .ui-thumb .ui-thumb-label {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #314395;
+            background: rgba(14, 24, 64, 0.65);
+            color: var(--text);
+            padding: 6px 8px;
+        }
+
+        .ui-thumb .ui-thumb-note {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .ui-thumb .ui-thumb-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .ui-thumb .ui-thumb-actions button {
+            flex: 1;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid #3a4ca0;
+            background: linear-gradient(180deg, rgba(58, 76, 160, 0.75), rgba(32, 46, 118, 0.85));
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .ui-thumb .ui-thumb-actions button.danger {
+            border-color: #7a2c3c;
+            background: linear-gradient(180deg, rgba(122, 44, 60, 0.8), rgba(88, 28, 40, 0.85));
+        }
+
+        .ui-gallery-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .ui-gallery-actions .btn-upload-ui {
+            padding: 7px 12px;
+            border-radius: 10px;
+            border: 1px solid #2742a2;
+            background: linear-gradient(180deg, rgba(39, 66, 162, 0.65), rgba(26, 46, 119, 0.8));
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .ui-gallery-actions .ui-gallery-note {
+            font-size: 12px;
+            color: var(--muted);
         }
 
         @media (max-width:780px) {
@@ -986,6 +1088,10 @@
                                 </div>
                                 <div class="row item-drop-row"><label>掉落設定</label>
                                     <div id="iDropEditor" class="drop-editor-wrap"></div>
+                                </div>
+                                <div class="row item-ui-row" id="iUiFields">
+                                    <label>互動 UI 圖片</label>
+                                    <div class="ui-gallery-host" id="iUiGallery"></div>
                                 </div>
                                 <div class="row ai-row" id="iAiFields">
                                     <label>AI 設定</label>
@@ -1710,6 +1816,38 @@
             return { enabled, dialogues };
         }
 
+        function sanitizeUiData(raw) {
+            const pickLabel = (value) => {
+                if (value === null || value === undefined) return '';
+                return String(value);
+            };
+            const normalizeScreens = (screens) => {
+                if (!Array.isArray(screens)) return [];
+                return screens.map(screen => {
+                    if (!screen || typeof screen !== 'object') return null;
+                    const id = (screen.id ?? '').toString().trim();
+                    const path = (screen.path ?? '').toString().trim();
+                    const filename = (screen.filename ?? '').toString().trim();
+                    if (!id && !path && !filename) return null;
+                    const entry = {
+                        id: id || `ui_${Math.random().toString(36).slice(2, 9)}`,
+                        path,
+                        filename
+                    };
+                    const label = pickLabel(screen.label);
+                    if (label) entry.label = label;
+                    const uploadedAt = (screen.uploadedAt ?? '').toString().trim();
+                    if (uploadedAt) entry.uploadedAt = uploadedAt;
+                    return entry;
+                }).filter(Boolean);
+            };
+            if (Array.isArray(raw)) {
+                return { screens: normalizeScreens(raw) };
+            }
+            const source = raw && typeof raw === 'object' ? raw : {};
+            return { screens: normalizeScreens(source.screens || []) };
+        }
+
         function formatAiSummary(ai) {
             const data = sanitizeAiData(ai);
             if (!data.enabled) return '未啟用';
@@ -1733,6 +1871,7 @@
                     } else if (copy.ai) {
                         copy.ai = sanitizeAiData(copy.ai);
                     }
+                    copy.ui = sanitizeUiData(copy.ui);
                     if (copy.creature !== undefined) {
                         delete copy.creature;
                     }
@@ -2000,6 +2139,224 @@
             };
         }
 
+        function createUiGallery({ initialScreens = [], buttonLabel = '＋選擇圖片', noteText = '支援多張介面截圖，可描述互動提示或互動視窗。', onChange } = {}) {
+            let existing = sanitizeUiData(initialScreens).screens.map(screen => ({ ...screen, label: screen.label || '' }));
+            let removedIds = new Set();
+            let newFiles = [];
+
+            const container = document.createElement('div');
+            container.className = 'ui-gallery';
+            const list = document.createElement('div');
+            list.className = 'ui-gallery-list';
+            const actions = document.createElement('div');
+            actions.className = 'ui-gallery-actions';
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'btn-upload-ui';
+            addBtn.textContent = buttonLabel;
+            const note = document.createElement('div');
+            note.className = 'ui-gallery-note';
+            note.textContent = noteText;
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.multiple = true;
+            fileInput.style.display = 'none';
+
+            actions.append(addBtn, note);
+            container.append(list, actions, fileInput);
+
+            const revokePreview = (entry) => {
+                if (entry.previewUrl) {
+                    URL.revokeObjectURL(entry.previewUrl);
+                    entry.previewUrl = '';
+                }
+            };
+
+            const getSnapshot = () => ({
+                existing: existing.map(screen => ({ id: screen.id, label: screen.label || '' })),
+                removed: Array.from(removedIds),
+                newCount: newFiles.length,
+                total: existing.length + newFiles.length
+            });
+
+            const notifyChange = () => {
+                if (typeof onChange === 'function') {
+                    onChange(getSnapshot());
+                }
+            };
+
+            function render() {
+                list.innerHTML = '';
+                if (existing.length === 0 && newFiles.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'ui-gallery-empty';
+                    empty.textContent = '尚未加入 UI 圖片';
+                    list.appendChild(empty);
+                    return;
+                }
+
+                existing.forEach(screen => {
+                    const item = document.createElement('div');
+                    item.className = 'ui-thumb';
+
+                    const img = document.createElement('img');
+                    img.src = screen.path || screen.filename || '';
+                    img.alt = screen.label || 'UI 圖片';
+
+                    const labelInput = document.createElement('input');
+                    labelInput.type = 'text';
+                    labelInput.className = 'ui-thumb-label';
+                    labelInput.placeholder = '顯示名稱';
+                    labelInput.value = screen.label || '';
+                    labelInput.addEventListener('input', () => {
+                        screen.label = labelInput.value;
+                    });
+                    labelInput.addEventListener('change', () => {
+                        screen.label = labelInput.value.trim();
+                        labelInput.value = screen.label;
+                        notifyChange();
+                    });
+
+                    const noteLine = document.createElement('div');
+                    noteLine.className = 'ui-thumb-note';
+                    noteLine.textContent = screen.uploadedAt ? `上傳：${new Date(screen.uploadedAt).toLocaleString()}` : '已儲存於物品中';
+
+                    const actionsWrap = document.createElement('div');
+                    actionsWrap.className = 'ui-thumb-actions';
+                    const previewBtn = document.createElement('button');
+                    previewBtn.type = 'button';
+                    previewBtn.textContent = '預覽';
+                    previewBtn.addEventListener('click', () => {
+                        if (screen.path) window.open(screen.path, '_blank');
+                    });
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'danger';
+                    removeBtn.textContent = '移除';
+                    removeBtn.addEventListener('click', () => {
+                        removedIds.add(screen.id);
+                        existing = existing.filter(s => s.id !== screen.id);
+                        render();
+                        notifyChange();
+                    });
+                    actionsWrap.append(previewBtn, removeBtn);
+
+                    item.append(img, labelInput, noteLine, actionsWrap);
+                    list.appendChild(item);
+                });
+
+                newFiles.forEach(entry => {
+                    const item = document.createElement('div');
+                    item.className = 'ui-thumb';
+
+                    const img = document.createElement('img');
+                    img.src = entry.previewUrl;
+                    img.alt = entry.file?.name || '暫存 UI 圖片';
+
+                    const labelInput = document.createElement('input');
+                    labelInput.type = 'text';
+                    labelInput.className = 'ui-thumb-label';
+                    labelInput.placeholder = '顯示名稱';
+                    labelInput.value = entry.label;
+                    labelInput.addEventListener('input', () => {
+                        entry.label = labelInput.value;
+                    });
+                    labelInput.addEventListener('change', () => {
+                        entry.label = labelInput.value.trim();
+                        labelInput.value = entry.label;
+                        notifyChange();
+                    });
+
+                    const noteLine = document.createElement('div');
+                    noteLine.className = 'ui-thumb-note';
+                    noteLine.textContent = '新增後記得儲存變更';
+
+                    const actionsWrap = document.createElement('div');
+                    actionsWrap.className = 'ui-thumb-actions';
+                    const previewBtn = document.createElement('button');
+                    previewBtn.type = 'button';
+                    previewBtn.textContent = '預覽';
+                    previewBtn.addEventListener('click', () => {
+                        if (entry.previewUrl) window.open(entry.previewUrl, '_blank');
+                    });
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'danger';
+                    removeBtn.textContent = '取消';
+                    removeBtn.addEventListener('click', () => {
+                        revokePreview(entry);
+                        newFiles = newFiles.filter(f => f.id !== entry.id);
+                        render();
+                        notifyChange();
+                    });
+                    actionsWrap.append(previewBtn, removeBtn);
+
+                    item.append(img, labelInput, noteLine, actionsWrap);
+                    list.appendChild(item);
+                });
+            }
+
+            function appendFiles(files) {
+                const arr = Array.isArray(files) ? files : [];
+                arr.forEach(file => {
+                    if (!file || typeof file !== 'object') return;
+                    if (file.error !== undefined && file.error !== 0) return;
+                    const previewUrl = URL.createObjectURL(file);
+                    const baseName = (file.name || '').replace(/\.[^.]+$/, '');
+                    newFiles.push({ id: uid(), file, label: baseName || '', previewUrl });
+                });
+                render();
+                notifyChange();
+            }
+
+            addBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', () => {
+                const files = Array.from(fileInput.files || []);
+                appendFiles(files);
+                fileInput.value = '';
+            });
+
+            render();
+            notifyChange();
+
+            return {
+                element: container,
+                setScreens(screens) {
+                    existing = sanitizeUiData(screens).screens.map(screen => ({ ...screen, label: screen.label || '' }));
+                    removedIds.clear();
+                    newFiles.forEach(revokePreview);
+                    newFiles = [];
+                    render();
+                    notifyChange();
+                },
+                getExistingMeta() {
+                    return existing.map(screen => ({ id: screen.id, label: screen.label || '' }));
+                },
+                getRemovedIds() {
+                    return Array.from(removedIds);
+                },
+                getNewFiles() {
+                    return newFiles.map(entry => ({ file: entry.file, label: entry.label || '' }));
+                },
+                appendFiles(files) {
+                    appendFiles(files);
+                },
+                reset() {
+                    existing = [];
+                    removedIds.clear();
+                    newFiles.forEach(revokePreview);
+                    newFiles = [];
+                    render();
+                    notifyChange();
+                },
+                getSnapshot,
+                getDisplayCount() {
+                    return existing.length + newFiles.length;
+                }
+            };
+        }
+
         function createAiEditor({ initialValue = null, onChange } = {}) {
             const toInternal = (input) => {
                 const sanitized = sanitizeAiData(input || {});
@@ -2201,6 +2558,14 @@
             iDropContainer.appendChild(createItemDropEditor.element);
         }
 
+        const iUiFields = document.getElementById('iUiFields');
+        const iUiHost = document.getElementById('iUiGallery');
+        const createItemUiGallery = iUiHost ? createUiGallery({ initialScreens: [] }) : null;
+        if (createItemUiGallery && iUiHost) {
+            iUiHost.innerHTML = '';
+            iUiHost.appendChild(createItemUiGallery.element);
+        }
+
         const iAiFields = document.getElementById('iAiFields');
         const iAiHost = document.getElementById('iAiEditorHost');
         const createItemAiEditor = iAiHost ? createAiEditor() : null;
@@ -2214,11 +2579,19 @@
             iAiFields.style.display = isAnimal ? '' : 'none';
         }
 
+        function updateCreateUiVisibility() {
+            if (!iUiFields) return;
+            const isInteractive = (iCategory?.value || '') === 'interactive';
+            iUiFields.style.display = isInteractive ? '' : 'none';
+        }
+
         if (iCategory) {
             iCategory.addEventListener('change', () => {
                 updateCreateAiVisibility();
+                updateCreateUiVisibility();
             });
             updateCreateAiVisibility();
+            updateCreateUiVisibility();
         }
 
         addItem.onclick = async () => {
@@ -2248,6 +2621,23 @@
                     formData.append('ai', JSON.stringify(createItemAiEditor.getValue()));
                 } else {
                     formData.append('ai', 'null');
+                }
+            }
+            if (createItemUiGallery) {
+                if (categoryId === 'interactive') {
+                    const uiMeta = createItemUiGallery.getExistingMeta();
+                    if (uiMeta.length > 0) {
+                        formData.append('uiScreens', JSON.stringify(uiMeta));
+                    }
+                    const newFiles = createItemUiGallery.getNewFiles();
+                    newFiles.forEach(entry => {
+                        if (entry.file) {
+                            formData.append('uiImages[]', entry.file);
+                            formData.append('uiImageLabels[]', entry.label || '');
+                        }
+                    });
+                } else {
+                    formData.append('clearUi', '1');
                 }
             }
             if (iIcon.files && iIcon.files[0]) {
@@ -2286,7 +2676,11 @@
                 if (createItemAiEditor) {
                     createItemAiEditor.setValue(null);
                 }
+                if (createItemUiGallery) {
+                    createItemUiGallery.reset();
+                }
                 updateCreateAiVisibility();
+                updateCreateUiVisibility();
                 populateTerrainChecklist(document.getElementById('iTerrainChecks'), []);
             } catch (err) {
                 console.error('Failed to create item', err);
@@ -2315,6 +2709,7 @@
             const terrainsLookup = new Map((project.terrains || []).map(t => [t.id, t.name]));
             const terrainNames = (item.terrains || []).map(id => terrainsLookup.get(id) || id);
             let aiEditor = null;
+            let uiGallery = null;
 
             const card = document.createElement('details');
             card.className = 'item-card';
@@ -2334,10 +2729,13 @@
             const dropMeta = document.createElement('span');
             dropMeta.className = 'item-drop-meta';
             dropMeta.textContent = `掉落：${formatDropSummary(item.drops, dropOptions)}`;
+            const uiMeta = document.createElement('span');
+            uiMeta.className = 'item-ui-meta';
+            uiMeta.style.display = 'none';
             const aiMeta = document.createElement('span');
             aiMeta.className = 'item-ai-meta';
             aiMeta.style.display = 'none';
-            meta.append(idSpan, terrainSpan, dropMeta, aiMeta);
+            meta.append(idSpan, terrainSpan, dropMeta, uiMeta, aiMeta);
             summary.append(titleSpan, meta);
             card.appendChild(summary);
 
@@ -2358,6 +2756,17 @@
             catRow.appendChild(catLabel); catRow.appendChild(catSelect);
             const catSearch = enableSelectSearch(catSelect, { placeholder: '搜尋分類…', emptyText: '沒有符合的分類' });
             catSearch?.refresh();
+
+            const applyUiMeta = (count) => {
+                if (!uiMeta) return;
+                const isInteractive = catSelect.value === 'interactive';
+                if (isInteractive) {
+                    uiMeta.style.display = '';
+                    uiMeta.textContent = `UI 圖片：${count > 0 ? `${count} 張` : '—'}`;
+                } else {
+                    uiMeta.style.display = 'none';
+                }
+            };
 
             const updateAiMeta = () => {
                 if (!aiMeta) return;
@@ -2388,6 +2797,19 @@
             dropRow.appendChild(dropLabel);
             dropRow.appendChild(dropWrap);
 
+            const uiRow = document.createElement('div');
+            uiRow.className = 'row item-ui-row';
+            const uiLabel = document.createElement('label');
+            uiLabel.textContent = 'UI 圖片';
+            const uiHost = document.createElement('div');
+            uiHost.className = 'ui-gallery-host';
+            uiGallery = createUiGallery({
+                initialScreens: sanitizeUiData(item.ui).screens,
+                onChange: snapshot => applyUiMeta(snapshot.total)
+            });
+            uiHost.appendChild(uiGallery.element);
+            uiRow.append(uiLabel, uiHost);
+
             const aiRow = document.createElement('div'); aiRow.className = 'row ai-row';
             const aiLabel = document.createElement('label'); aiLabel.textContent = 'AI 設定';
             const aiHost = document.createElement('div'); aiHost.className = 'ai-editor-host';
@@ -2400,8 +2822,11 @@
 
             const handleCategoryToggle = () => {
                 const isAnimal = catSelect.value === 'animal';
+                const isInteractive = catSelect.value === 'interactive';
                 aiRow.style.display = isAnimal ? '' : 'none';
+                uiRow.style.display = isInteractive ? '' : 'none';
                 updateAiMeta();
+                applyUiMeta(isInteractive ? (uiGallery?.getDisplayCount?.() ?? 0) : 0);
             };
             catSelect.addEventListener('change', handleCategoryToggle);
             handleCategoryToggle();
@@ -2419,7 +2844,7 @@
             const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn danger'; deleteBtn.textContent = '刪除此物品';
             actionsRow.append(saveBtn, uploadBtn, removeImageBtn, deleteBtn);
 
-            form.append(nameRow, catRow, notesRow, dropRow, aiRow, terrainRow, actionsRow);
+            form.append(nameRow, catRow, notesRow, dropRow, uiRow, aiRow, terrainRow, actionsRow);
             body.appendChild(form);
 
             const imageSection = document.createElement('div');
@@ -2498,6 +2923,20 @@
                 formData.append('notes', notesField.value.trim());
                 formData.append('terrains', JSON.stringify(terrainsSelected));
                 formData.append('drops', JSON.stringify(dropEditor.getDrops()));
+                if (uiGallery) {
+                    if (catSelect.value === 'interactive') {
+                        formData.append('uiScreens', JSON.stringify(uiGallery.getExistingMeta()));
+                        uiGallery.getRemovedIds().forEach(id => formData.append('removeUiScreens[]', id));
+                        uiGallery.getNewFiles().forEach(entry => {
+                            if (entry.file) {
+                                formData.append('uiImages[]', entry.file);
+                                formData.append('uiImageLabels[]', entry.label || '');
+                            }
+                        });
+                    } else {
+                        formData.append('clearUi', '1');
+                    }
+                }
                 if (aiEditor) {
                     if (catSelect.value === 'animal') {
                         formData.append('ai', JSON.stringify(aiEditor.getValue()));

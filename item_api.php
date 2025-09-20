@@ -58,6 +58,13 @@ function slugify($s){
   $s = preg_replace('/\s+/', '-', $s) ?? '';
   return $s !== '' ? $s : 'item';
 }
+function parse_bool_like($value){
+  if (is_bool($value)) return $value;
+  if (is_int($value) || is_float($value)) return ((int)$value) !== 0;
+  $str = strtolower(trim((string)$value));
+  if ($str === '') return false;
+  return in_array($str, ['1','true','yes','y','on'], true);
+}
 function parse_array_field($key){
   if (isset($_POST[$key])) {
     $raw = $_POST[$key];
@@ -75,6 +82,42 @@ function parse_array_field($key){
     }
   }
   return $out;
+}
+function parse_list_allow_empty($key){
+  if (!isset($_POST[$key])) return [];
+  $raw = $_POST[$key];
+  if (is_array($raw)) return array_values(array_map(fn($v)=>(string)$v, $raw));
+  $str = trim((string)$raw);
+  if ($str === '') return [];
+  $decoded = json_decode($str, true);
+  if (is_array($decoded)) return array_values(array_map(fn($v)=>(string)$v, $decoded));
+  return [(string)$raw];
+}
+function normalize_uploads($field){
+  if (!isset($_FILES[$field])) return [];
+  $info = $_FILES[$field];
+  $files = [];
+  if (is_array($info['name'])) {
+    $count = count($info['name']);
+    for ($i = 0; $i < $count; $i++) {
+      $files[] = [
+        'name' => $info['name'][$i] ?? '',
+        'type' => $info['type'][$i] ?? '',
+        'tmp_name' => $info['tmp_name'][$i] ?? '',
+        'error' => $info['error'][$i] ?? UPLOAD_ERR_NO_FILE,
+        'size' => $info['size'][$i] ?? 0,
+      ];
+    }
+  } else {
+    $files[] = [
+      'name' => $info['name'] ?? '',
+      'type' => $info['type'] ?? '',
+      'tmp_name' => $info['tmp_name'] ?? '',
+      'error' => $info['error'] ?? UPLOAD_ERR_NO_FILE,
+      'size' => $info['size'] ?? 0,
+    ];
+  }
+  return $files;
 }
 function parse_drops_from_request($key='drops'){
   global $allowedSources;
@@ -100,6 +143,122 @@ function parse_drops_from_request($key='drops'){
     $out[] = $entry;
   }
   return $out;
+}
+
+function sanitize_ui_screens($raw, $itemId = ''){
+  if (!is_array($raw)) return [];
+  $screens = [];
+  foreach ($raw as $screen) {
+    if (!is_array($screen)) continue;
+    $id = trim((string)($screen['id'] ?? ''));
+    if ($id === '') $id = 'ui_' . substr(sha1(uniqid('', true)), 0, 10);
+    $filename = trim((string)($screen['filename'] ?? ''));
+    $path = trim((string)($screen['path'] ?? ''));
+    if ($path === '' && $filename !== '' && $itemId !== '') {
+      $path = 'Items/' . $itemId . '/ui/' . $filename;
+    }
+    if ($filename === '' && $path !== '') {
+      $filename = basename($path);
+    }
+    if ($path === '' && $filename === '') continue;
+    $label = isset($screen['label']) ? trim((string)$screen['label']) : '';
+    $uploadedAt = trim((string)($screen['uploadedAt'] ?? ''));
+    $entry = ['id'=>$id,'filename'=>$filename,'path'=>$path];
+    if ($label !== '') $entry['label'] = $label;
+    if ($uploadedAt !== '') $entry['uploadedAt'] = $uploadedAt;
+    $screens[] = $entry;
+  }
+  return $screens;
+}
+function sanitize_ui_payload($raw, $itemId = ''){
+  if (is_array($raw) && isset($raw['screens']) && is_array($raw['screens'])) {
+    return ['screens' => sanitize_ui_screens($raw['screens'], $itemId)];
+  }
+  if (is_array($raw) && !isset($raw['screens'])) {
+    return ['screens' => sanitize_ui_screens($raw, $itemId)];
+  }
+  return ['screens' => []];
+}
+function parse_ui_screens_from_request($key='uiScreens'){
+  if (!isset($_POST[$key])) return [];
+  $raw = $_POST[$key];
+  if (is_array($raw)) {
+    $data = $raw;
+  } else {
+    $str = trim((string)$raw);
+    if ($str === '' || strtolower($str) === 'null') return [];
+    $decoded = json_decode($str, true);
+    if (!is_array($decoded)) return [];
+    $data = $decoded;
+  }
+  $out = [];
+  foreach ($data as $entry) {
+    if (!is_array($entry)) continue;
+    $id = trim((string)($entry['id'] ?? ''));
+    if ($id === '') continue;
+    $label = isset($entry['label']) ? trim((string)$entry['label']) : '';
+    $out[] = ['id'=>$id, 'label'=>$label];
+  }
+  return $out;
+}
+function ensure_ui_dir($itemsDir, $itemId){
+  $dir = $itemsDir . '/' . $itemId;
+  ensure_dir($dir, false);
+  $uiDir = $dir . '/ui';
+  ensure_dir($uiDir, false);
+  return $uiDir;
+}
+function remove_ui_directory($itemsDir, $itemId){
+  $dir = $itemsDir . '/' . $itemId . '/ui';
+  if (!is_dir($dir)) return;
+  $files = glob($dir.'/*');
+  if (is_array($files)) {
+    foreach ($files as $f) {
+      if (is_file($f)) @unlink($f);
+    }
+  }
+  @rmdir($dir);
+}
+function append_ui_uploads($itemId, $files, $labels, $itemsDir, $existingScreens = [], $handledAction = 'update'){
+  global $allowedExt, $maxUpload;
+  $screens = $existingScreens;
+  if (!is_array($files) || count($files) === 0) return $screens;
+  $uiDir = ensure_ui_dir($itemsDir, $itemId);
+  foreach ($files as $idx => $file) {
+    $err = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($err === UPLOAD_ERR_NO_FILE) continue;
+    if ($err !== UPLOAD_ERR_OK) {
+      respond(400, ["status"=>"error","handledAction"=>$handledAction,"message"=>"ui image upload error: $err"]);
+    }
+    $size = (int)($file['size'] ?? 0);
+    if ($size > $maxUpload) {
+      respond(400, ["status"=>"error","handledAction"=>$handledAction,"message"=>"ui image too large"]);
+    }
+    $nameOrig = (string)($file['name'] ?? 'ui.png');
+    $ext = strtolower(pathinfo($nameOrig, PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowedExt, true)) {
+      respond(400, ["status"=>"error","handledAction"=>$handledAction,"message"=>"invalid ui image ext"]);
+    }
+    $screenId = 'ui_' . substr(sha1(uniqid('', true)), 0, 10);
+    $filename = $screenId . '.' . $ext;
+    $dest = $uiDir . '/' . $filename;
+    if (!@move_uploaded_file($file['tmp_name'], $dest)) {
+      respond(500, ["status"=>"error","handledAction"=>$handledAction,"message"=>"failed to save ui image"]);
+    }
+    @chmod($dest, 0666);
+    $label = isset($labels[$idx]) ? trim((string)$labels[$idx]) : '';
+    $entry = [
+      'id' => $screenId,
+      'filename' => $filename,
+      'path' => 'Items/' . $itemId . '/ui/' . $filename,
+      'uploadedAt' => gmdate('c')
+    ];
+    if ($label !== '') {
+      $entry['label'] = $label;
+    }
+    $screens[] = $entry;
+  }
+  return $screens;
 }
 
 function default_ai_payload(){
@@ -185,6 +344,8 @@ function load_items_json($jsonPath){
       } elseif (isset($it['ai'])) {
         $it['ai'] = sanitize_ai_array($it['ai']);
       }
+      $itemIdForUi = isset($it['id']) ? (string)$it['id'] : '';
+      $it['ui'] = sanitize_ui_payload($it['ui'] ?? [], $itemIdForUi);
       if (isset($it['creature'])) {
         unset($it['creature']);
       }
@@ -255,6 +416,14 @@ if ($action === 'create') {
   } elseif ($aiData !== null) {
     $item['ai'] = $aiData;
   }
+  if ($categoryId === 'interactive') {
+    $uiLabels = parse_list_allow_empty('uiImageLabels');
+    $uiFiles = normalize_uploads('uiImages');
+    $uiScreens = append_ui_uploads($id, $uiFiles, $uiLabels, $itemsDir, [], 'create');
+    $item['ui'] = ['screens'=>$uiScreens];
+  } else {
+    $item['ui'] = ['screens'=>[]];
+  }
   $items[] = $item; $data['items'] = $items; try_save_items($jsonPath,$data);
 
   respond(200, ["status"=>"ok","handledAction"=>"create","item"=>$item,"items"=>$data["items"],"categories"=>$data["categories"]]);
@@ -295,6 +464,80 @@ if ($action === 'update') {
       unset($items[$idx]['ai']);
       $changed = true;
     }
+  }
+
+  $currentUi = sanitize_ui_payload($items[$idx]['ui'] ?? [], $id);
+  $screens = $currentUi['screens'];
+  $removeUi = parse_array_field('removeUiScreens');
+  if (!empty($removeUi)) {
+    $removeSet = array_flip($removeUi);
+    $remaining = [];
+    foreach ($screens as $screen) {
+      if (isset($removeSet[$screen['id']])) {
+        if (!empty($screen['path'])) {
+          @unlink(__DIR__ . '/' . $screen['path']);
+        }
+        $changed = true;
+      } else {
+        $remaining[] = $screen;
+      }
+    }
+    $screens = $remaining;
+  }
+
+  $orderBefore = implode('|', array_map(fn($s) => $s['id'], $screens));
+  $uiMeta = parse_ui_screens_from_request('uiScreens');
+  if (!empty($uiMeta)) {
+    $order = [];
+    $used = [];
+    foreach ($uiMeta as $entry) {
+      foreach ($screens as $screen) {
+        if ($screen['id'] === $entry['id']) {
+          $label = $entry['label'];
+          if (($screen['label'] ?? '') !== $label) {
+            if ($label === '') {
+              unset($screen['label']);
+            } else {
+              $screen['label'] = $label;
+            }
+            $changed = true;
+          }
+          $order[] = $screen;
+          $used[$screen['id']] = true;
+          break;
+        }
+      }
+    }
+    foreach ($screens as $screen) {
+      if (!isset($used[$screen['id']])) {
+        $order[] = $screen;
+      }
+    }
+    $screens = $order;
+    if (implode('|', array_map(fn($s) => $s['id'], $screens)) !== $orderBefore) {
+      $changed = true;
+    }
+  }
+
+  $clearUi = isset($_POST['clearUi']) ? parse_bool_like($_POST['clearUi']) : false;
+  $uiLabels = parse_list_allow_empty('uiImageLabels');
+  $uiFiles = normalize_uploads('uiImages');
+  if ($finalCategoryId === 'interactive' && !$clearUi) {
+    $before = count($screens);
+    $screens = append_ui_uploads($id, $uiFiles, $uiLabels, $itemsDir, $screens, 'update');
+    if (count($screens) > $before) $changed = true;
+    $items[$idx]['ui'] = ['screens'=>$screens];
+  } else {
+    if (!empty($screens)) {
+      foreach ($screens as $screen) {
+        if (!empty($screen['path'])) {
+          @unlink(__DIR__ . '/' . $screen['path']);
+        }
+      }
+      $changed = true;
+    }
+    remove_ui_directory($itemsDir, $id);
+    $items[$idx]['ui'] = ['screens'=>[]];
   }
 
   // 圖片處理
