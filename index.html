@@ -1593,7 +1593,19 @@
             return options;
         }
 
+        if (window.ItemDrops) {
+            if (typeof window.ItemDrops.registerLabelFallbacks === 'function') {
+                window.ItemDrops.registerLabelFallbacks(dropLabelFallback);
+            }
+            if (typeof window.ItemDrops.setSourceResolver === 'function') {
+                window.ItemDrops.setSourceResolver(() => getDropSourceOptions());
+            }
+        }
+
         function formatDropSummary(drops, sourceOptions = getDropSourceOptions()) {
+            if (window.ItemDrops && typeof window.ItemDrops.formatDrops === 'function') {
+                return window.ItemDrops.formatDrops(drops, sourceOptions);
+            }
             if (!Array.isArray(drops) || drops.length === 0) return '—';
             const labelMap = new Map((sourceOptions || []).map(opt => [opt.id, opt.label]));
             return drops.map(d => {
@@ -1633,6 +1645,9 @@
 
             const sanitize = (raw) => {
                 const baseType = options.length > 0 ? options[0].id : 'entity';
+                if (window.ItemDrops && typeof window.ItemDrops.sanitiseDrop === 'function') {
+                    return window.ItemDrops.sanitiseDrop(raw, baseType, options);
+                }
                 let chance = parseFloat(valueOr(raw && raw.chance, 0));
                 if (!Number.isFinite(chance)) chance = 0;
                 chance = Math.max(0, Math.min(1, chance));
@@ -1646,8 +1661,16 @@
                 return { chance, min, max, sourceType, sourceId };
             };
 
-            let drops = Array.isArray(initialDrops) ? initialDrops.map(sanitize) : [];
-            const getDropsSnapshot = () => drops.map(sanitize);
+            let drops = (window.ItemDrops && typeof window.ItemDrops.normaliseDrops === 'function')
+                ? window.ItemDrops.normaliseDrops(initialDrops, options)
+                : (Array.isArray(initialDrops) ? initialDrops.map(sanitize) : []);
+
+            const getDropsSnapshot = () => {
+                if (window.ItemDrops && typeof window.ItemDrops.normaliseDrops === 'function') {
+                    return window.ItemDrops.normaliseDrops(drops, options);
+                }
+                return drops.map(sanitize);
+            };
 
             function buildOptionElements(select, value) {
                 select.innerHTML = '';
@@ -1675,6 +1698,7 @@
 
             function render() {
                 list.innerHTML = '';
+                drops = getDropsSnapshot();
                 if (drops.length === 0) {
                     const empty = document.createElement('div');
                     empty.className = 'drop-empty';
@@ -1720,31 +1744,32 @@
 
                     chanceInput.addEventListener('change', () => {
                         const sanitized = sanitize({ ...drops[idx], chance: chanceInput.value });
-                        drops[idx].chance = sanitized.chance;
-                        chanceInput.value = String(drops[idx].chance);
+                        drops[idx] = sanitized;
+                        chanceInput.value = String(sanitized.chance);
                         triggerChange();
                     });
 
                     minInput.addEventListener('change', () => {
                         const sanitized = sanitize({ ...drops[idx], min: minInput.value });
-                        drops[idx].min = sanitized.min;
-                        if (drops[idx].max < drops[idx].min) {
-                            drops[idx].max = drops[idx].min;
-                            maxInput.value = String(drops[idx].max);
-                        }
-                        minInput.value = String(drops[idx].min);
+                        drops[idx] = sanitized;
+                        minInput.value = String(sanitized.min);
+                        maxInput.value = String(sanitized.max);
                         triggerChange();
                     });
 
                     maxInput.addEventListener('change', () => {
                         const sanitized = sanitize({ ...drops[idx], max: maxInput.value });
-                        drops[idx].max = sanitized.max < drops[idx].min ? drops[idx].min : sanitized.max;
-                        maxInput.value = String(drops[idx].max);
+                        drops[idx] = sanitized;
+                        minInput.value = String(sanitized.min);
+                        maxInput.value = String(sanitized.max);
                         triggerChange();
                     });
 
                     typeSelect.addEventListener('change', () => {
-                        drops[idx].sourceType = typeSelect.value;
+                        const sanitized = sanitize({ ...drops[idx], sourceType: typeSelect.value });
+                        drops[idx] = sanitized;
+                        typeSelect.value = sanitized.sourceType;
+                        idInput.value = sanitized.sourceId;
                         triggerChange();
                     });
 
@@ -1753,7 +1778,9 @@
                     });
 
                     idInput.addEventListener('blur', () => {
-                        drops[idx].sourceId = idInput.value.trim();
+                        const sanitized = sanitize({ ...drops[idx], sourceId: idInput.value });
+                        drops[idx] = sanitized;
+                        idInput.value = sanitized.sourceId;
                         triggerChange();
                     });
 
@@ -1783,13 +1810,17 @@
                     return getDropsSnapshot();
                 },
                 setDrops(newDrops) {
-                    drops = Array.isArray(newDrops) ? newDrops.map(sanitize) : [];
+                    drops = (window.ItemDrops && typeof window.ItemDrops.normaliseDrops === 'function')
+                        ? window.ItemDrops.normaliseDrops(newDrops, options)
+                        : (Array.isArray(newDrops) ? newDrops.map(sanitize) : []);
                     render();
                     triggerChange();
                 },
                 setSourceOptions(newOptions) {
                     options = Array.isArray(newOptions) ? newOptions.map(opt => ({ ...opt })) : [];
-                    drops = drops.map(drop => sanitize(drop));
+                    drops = (window.ItemDrops && typeof window.ItemDrops.normaliseDrops === 'function')
+                        ? window.ItemDrops.normaliseDrops(drops, options)
+                        : drops.map(drop => sanitize(drop));
                     render();
                 }
             };
