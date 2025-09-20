@@ -231,6 +231,92 @@ if ($action === 'update') {
     $items[$idx]['image']=["filename"=>$safe,"path"=>$pathRel,"label"=>($_POST['imageLabel'] ?? ($items[$idx]['image']['label'] ?? "")),"uploadedAt"=>gmdate('c')];
     $changed=true;
   }
+  if (isset($_POST['imageMeta'])) {
+    $metaRaw = $_POST['imageMeta'];
+    $meta = is_array($metaRaw) ? $metaRaw : json_decode((string)$metaRaw, true);
+    if (!is_array($meta)) {
+      respond(400, ["status"=>"error","handledAction"=>"update","message"=>"imageMeta 必須是 JSON"]);
+    }
+    if (!isset($items[$idx]['image']) || !is_array($items[$idx]['image'])) {
+      respond(400, ["status"=>"error","handledAction"=>"update","message"=>"目前沒有圖片可更新"]);
+    }
+    $currentImage = $items[$idx]['image'];
+    $labelProvided = array_key_exists('label', $meta);
+    $newLabelRaw = $labelProvided ? (string)$meta['label'] : ($currentImage['label'] ?? '');
+    $newLabel = trim($newLabelRaw);
+    if ($labelProvided && $newLabel !== ($currentImage['label'] ?? '')) {
+      $items[$idx]['image']['label'] = $newLabel;
+      $changed = true;
+    }
+    $renameFile = !empty($meta['renameFile']);
+    if ($renameFile) {
+      if ($newLabel === '') {
+        $fallbackLabel = trim((string)($currentImage['label'] ?? ''));
+        if ($fallbackLabel === '') $fallbackLabel = trim((string)($items[$idx]['name'] ?? ''));
+        $newLabel = $fallbackLabel !== '' ? $fallbackLabel : 'image';
+        $items[$idx]['image']['label'] = $newLabel;
+        if ($newLabel !== ($currentImage['label'] ?? '')) {
+          $changed = true;
+        }
+      }
+      $currentPath = isset($currentImage['path']) ? (__DIR__ . '/' . ltrim($currentImage['path'], '/')) : '';
+      $currentFilename = $currentImage['filename'] ?? '';
+      if ($currentPath === '' || $currentFilename === '') {
+        respond(400, ["status"=>"error","handledAction"=>"update","message"=>"圖片資訊不完整，無法重新命名"]);
+      }
+      if (!is_file($currentPath)) {
+        respond(500, ["status"=>"error","handledAction"=>"update","message"=>"找不到原始圖片，無法重新命名"]);
+      }
+      $ext = strtolower(pathinfo($currentFilename, PATHINFO_EXTENSION));
+      if ($ext === '') {
+        $ext = strtolower(pathinfo($currentPath, PATHINFO_EXTENSION));
+      }
+      if ($ext === '') {
+        $ext = 'png';
+      }
+      $baseSlug = slugify($newLabel);
+      if ($baseSlug === '') {
+        $baseSlug = 'image';
+      }
+      $prefix = 'Items/'.$id.'/';
+      $usesSubdir = isset($currentImage['path']) && strpos($currentImage['path'], $prefix) === 0;
+      $targetDir = $usesSubdir ? ($itemsDir.'/'.$id) : $itemsDir;
+      if ($usesSubdir) {
+        ensure_dir($targetDir, false);
+        if (!is_dir($targetDir)) {
+          respond(500, ["status"=>"error","handledAction"=>"update","message"=>"無法建立圖片目錄用於重新命名"]);
+        }
+      } else {
+        ensure_dir($targetDir);
+      }
+      $candidate = null;
+      $suffix = 0;
+      while ($suffix < 1000) {
+        $suffixPart = $suffix === 0 ? '' : '-'.$suffix;
+        $filename = $usesSubdir ? ($baseSlug.$suffixPart.'.'.$ext) : ($id.'_'.$baseSlug.$suffixPart.'.'.$ext);
+        $destPath = $targetDir.'/'.$filename;
+        if (strcasecmp($destPath, $currentPath) === 0 || !file_exists($destPath)) {
+          $candidate = [$filename, $destPath];
+          break;
+        }
+        $suffix++;
+      }
+      if ($candidate === null) {
+        respond(500, ["status"=>"error","handledAction"=>"update","message"=>"無可用的檔名供重新命名"]);
+      }
+      [$newFilename, $destPath] = $candidate;
+      if (strcasecmp($destPath, $currentPath) !== 0) {
+        if (!@rename($currentPath, $destPath)) {
+          respond(500, ["status"=>"error","handledAction"=>"update","message"=>"重新命名圖片失敗（可能無權限）"]);
+        }
+      }
+      @chmod($destPath, 0666);
+      $items[$idx]['image']['filename'] = $newFilename;
+      $items[$idx]['image']['path'] = 'Items/'.($usesSubdir ? ($id.'/'.$newFilename) : $newFilename);
+      $items[$idx]['image']['uploadedAt'] = gmdate('c');
+      $changed = true;
+    }
+  }
   if(isset($_POST['removeImage']) && (($_POST['removeImage']==='1')||($_POST['removeImage']==='true'))){
     if(isset($items[$idx]['image']['path'])){ @unlink(__DIR__.'/'.$items[$idx]['image']['path']); }
     $items[$idx]['image']=null; $changed=true;
