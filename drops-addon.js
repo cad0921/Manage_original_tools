@@ -3,6 +3,14 @@
   const UI = { block: null, list: null };
   const valOr = (value, fallback) => (value === undefined || value === null) ? fallback : value;
 
+  function isFiniteNumber(value) {
+    if (typeof Number.isFinite === 'function') {
+      return Number.isFinite(value);
+    }
+    const num = typeof value === 'number' ? value : Number(value);
+    return typeof num === 'number' && num === num && num !== Infinity && num !== -Infinity;
+  }
+
   const FALLBACK_LABELS = {
     entity: '動畫生物',
     animal: '生物',
@@ -41,14 +49,15 @@
   function ensureDropsArray(item) { if (!item.drops || !Array.isArray(item.drops)) item.drops = []; }
 
   function mergeLabelFallbacks(map) {
-    labelFallbacks = { ...FALLBACK_LABELS };
+    const next = { ...FALLBACK_LABELS, ...labelFallbacks };
     if (map && typeof map === 'object') {
       Object.keys(map).forEach(key => {
         const label = map[key];
         if (label === undefined || label === null || label === '') return;
-        labelFallbacks[key] = String(label);
+        next[key] = String(label);
       });
     }
+    labelFallbacks = next;
   }
 
   function normaliseOptions(rawOptions) {
@@ -90,8 +99,8 @@
   }
 
   function clampChance(value) {
-    const num = parseFloat(value);
-    if (!Number.isFinite(num) || isNaN(num)) return 0;
+    const num = Number(value);
+    if (!isFiniteNumber(num)) return 0;
     if (num < 0) return 0;
     if (num > 1) return 1;
     return num;
@@ -102,9 +111,9 @@
     const fallbackType = baseType && typeof baseType === 'string' && baseType.trim() ? baseType.trim() : getBaseType(options);
     const chance = clampChance(valOr(raw && raw.chance, 0));
     let min = parseInt(valOr(raw && raw.min, 0), 10);
-    if (!Number.isFinite(min) || isNaN(min) || min < 0) min = 0;
+    if (!isFiniteNumber(min) || min < 0) min = 0;
     let max = parseInt(valOr(raw && raw.max, min), 10);
-    if (!Number.isFinite(max) || isNaN(max) || max < min) max = min;
+    if (!isFiniteNumber(max) || max < min) max = min;
     let sourceType = String(valOr(raw && raw.sourceType, '')).trim();
     const validTypes = new Set(options.map(opt => opt.id));
     if (!sourceType || !validTypes.has(sourceType)) {

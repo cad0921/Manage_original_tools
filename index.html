@@ -1575,27 +1575,39 @@
             animal: '生物'
         };
 
+        function getEffectiveDropLabelFallbacks() {
+            const base = (window.ItemDrops && typeof window.ItemDrops.getLabelFallbacks === 'function')
+                ? window.ItemDrops.getLabelFallbacks()
+                : null;
+            const merged = (base && typeof base === 'object') ? { ...base } : {};
+            Object.keys(dropLabelFallback).forEach(key => {
+                merged[key] = dropLabelFallback[key];
+            });
+            return merged;
+        }
+
         function getDropSourceOptions() {
             ensureItemCategories(project.itemCategories);
+            const fallbackLabels = getEffectiveDropLabelFallbacks();
             const options = [];
             const seen = new Set();
             const add = (id, label) => {
                 if (!id || seen.has(id)) return;
                 seen.add(id);
-                options.push({ id, label: label || dropLabelFallback[id] || id });
+                options.push({ id, label: label || fallbackLabels[id] || id });
             };
-            add('entity', dropLabelFallback.entity);
+            add('entity', fallbackLabels.entity || dropLabelFallback.entity);
             (project.itemCategories || []).forEach(cat => {
                 if (!cat || !cat.id || cat.id === 'drop') return;
-                add(cat.id, cat.label || cat.name || dropLabelFallback[cat.id] || cat.id);
+                add(cat.id, cat.label || cat.name || fallbackLabels[cat.id] || cat.id);
             });
-            ['material', 'weapon', 'armor'].forEach(id => add(id, dropLabelFallback[id]));
+            ['material', 'weapon', 'armor'].forEach(id => add(id, fallbackLabels[id] || dropLabelFallback[id]));
             return options;
         }
 
         if (window.ItemDrops) {
             if (typeof window.ItemDrops.registerLabelFallbacks === 'function') {
-                window.ItemDrops.registerLabelFallbacks(dropLabelFallback);
+                window.ItemDrops.registerLabelFallbacks(getEffectiveDropLabelFallbacks());
             }
             if (typeof window.ItemDrops.setSourceResolver === 'function') {
                 window.ItemDrops.setSourceResolver(() => getDropSourceOptions());
@@ -1607,6 +1619,7 @@
                 return window.ItemDrops.formatDrops(drops, sourceOptions);
             }
             if (!Array.isArray(drops) || drops.length === 0) return '—';
+            const fallbackLabels = getEffectiveDropLabelFallbacks();
             const labelMap = new Map((sourceOptions || []).map(opt => [opt.id, opt.label]));
             return drops.map(d => {
                 const chanceRaw = Number(valueOr(d && d.chance, 0));
@@ -1618,7 +1631,7 @@
                 if (!Number.isFinite(max) || isNaN(max) || max < min) max = min;
                 const qty = min === max ? `${min}` : `${min}-${max}`;
                 const type = String(valueOr(d && d.sourceType, '')).trim();
-                const label = type ? (labelMap.get(type) || dropLabelFallback[type] || type) : '';
+                const label = type ? (labelMap.get(type) || fallbackLabels[type] || type) : '';
                 const sourceId = String(valueOr(d && d.sourceId, '')).trim();
                 const sourceText = type ? `${label}${sourceId ? `:${sourceId}` : ''}` : '';
                 return `${chance}% × ${qty}${sourceText ? `（${sourceText}）` : ''}`;
@@ -2814,6 +2827,7 @@
             const used = new Set();
             const sources = [];
             const categoryMap = new Map((project.itemCategories || []).map(cat => [cat.id, cat]));
+            const fallbackLabels = getEffectiveDropLabelFallbacks();
 
             (project.items || []).forEach(item => {
                 if (!item || !item.id) return;
@@ -2829,7 +2843,7 @@
                     displayName: (entry && entry.name) || item.name || item.id,
                     categoryLabel: (category && category.label)
                         ? category.label
-                        : (dropLabelFallback[item.categoryId] || item.categoryId || ''),
+                        : (fallbackLabels[item.categoryId] || item.categoryId || ''),
                     imageSrc,
                     entry
                 });
