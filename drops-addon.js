@@ -1,6 +1,7 @@
 (function(){
   window.ItemDrops = window.ItemDrops || {};
   const UI = { block:null, list:null };
+  const valOr = (value, fallback) => (value === undefined || value === null) ? fallback : value;
   const SOURCE_TYPES = [
     {id:'entity',label:'動畫生物'},
     {id:'animal',label:'生物'},
@@ -21,16 +22,16 @@
   function makeSelect(opts,value){ const s=document.createElement('select'); opts.forEach(o=>{const op=document.createElement('option'); op.value=o.id; op.textContent=o.label; if(o.id===value) op.selected=true; s.appendChild(op);}); return s; }
   function createRow(item, idx){
     const d=item.drops[idx]; const row=document.createElement('div'); row.className='drop-row'; row.dataset.idx=String(idx);
-    const inChance=document.createElement('input'); inChance.type='number'; inChance.step='0.01'; inChance.min='0'; inChance.max='1'; inChance.placeholder='機率(0~1)'; inChance.value=d.chance??1;
-    const inMin=document.createElement('input'); inMin.type='number'; inMin.step='1'; inMin.min='0'; inMin.placeholder='最少'; inMin.value=d.min??1;
-    const inMax=document.createElement('input'); inMax.type='number'; inMax.step='1'; inMax.min='0'; inMax.placeholder='最多'; inMax.value=d.max??d.min??1;
+    const inChance=document.createElement('input'); inChance.type='number'; inChance.step='0.01'; inChance.min='0'; inChance.max='1'; inChance.placeholder='機率(0~1)'; inChance.value=valOr(d.chance,1);
+    const inMin=document.createElement('input'); inMin.type='number'; inMin.step='1'; inMin.min='0'; inMin.placeholder='最少'; inMin.value=valOr(d.min,1);
+    const inMax=document.createElement('input'); inMax.type='number'; inMax.step='1'; inMax.min='0'; inMax.placeholder='最多'; inMax.value=valOr(valOr(d.max,d.min),1);
     const srcType=makeSelect(SOURCE_TYPES, d.sourceType||'entity');
     const srcId=document.createElement('input'); srcId.type='text'; srcId.placeholder='來源 ID（例如 forest_wolf / wheat / iron_ore / oak）'; srcId.value=d.sourceId||'';
     const del=document.createElement('button'); del.type='button'; del.className='danger'; del.textContent='刪除';
     del.addEventListener('click', ()=>{ const i=+row.dataset.idx; item.drops.splice(i,1); render(item); });
     inChance.addEventListener('input', ()=>{ const i=+row.dataset.idx; item.drops[i].chance=clamp01(inChance.value||'0'); inChance.value=item.drops[i].chance; });
-    inMin.addEventListener('input', ()=>{ const i=+row.dataset.idx; const v=Math.max(0, parseInt(inMin.value||'0',10)); item.drops[i].min=v; if((item.drops[i].max??v)<v){ item.drops[i].max=v; inMax.value=v; } inMin.value=v; });
-    inMax.addEventListener('input', ()=>{ const i=+row.dataset.idx; const v=Math.max(0, parseInt(inMax.value||'0',10)); const mn=item.drops[i].min??0; item.drops[i].max=Math.max(v,mn); inMax.value=item.drops[i].max; });
+    inMin.addEventListener('input', ()=>{ const i=+row.dataset.idx; const v=Math.max(0, parseInt(inMin.value||'0',10)); item.drops[i].min=v; if(valOr(item.drops[i].max,v)<v){ item.drops[i].max=v; inMax.value=v; } inMin.value=v; });
+    inMax.addEventListener('input', ()=>{ const i=+row.dataset.idx; const v=Math.max(0, parseInt(inMax.value||'0',10)); const mn=valOr(item.drops[i].min,0); item.drops[i].max=Math.max(v,mn); inMax.value=item.drops[i].max; });
     srcType.addEventListener('change', ()=>{ const i=+row.dataset.idx; item.drops[i].sourceType=srcType.value; });
     srcId.addEventListener('input', ()=>{ const i=+row.dataset.idx; item.drops[i].sourceId=srcId.value.trim(); });
     row.append(inChance,inMin,inMax,srcType,srcId,del); return row;
@@ -44,5 +45,5 @@
   }
   window.ItemDrops.onOpen=function(item, mountEl){ window.ItemDrops.currentItem=item; if(!UI.block) mountEl.appendChild(buildBlock()); render(item); };
   window.ItemDrops.onCollect=function(fd){ const item=window.ItemDrops.currentItem; const drops=(item&&Array.isArray(item.drops))?item.drops:[]; fd.append('drops', JSON.stringify(drops)); };
-  window.ItemDrops.formatBrief=function(drops){ if(!Array.isArray(drops)||drops.length===0) return '—'; return drops.map(d=>{ const pct=Math.round((d.chance??0)*100); const mn=d.min??1, mx=d.max??mn; const src=(d.sourceType&&d.sourceId)?`（${d.sourceType}:${d.sourceId}）`:''; return `${pct}% × ${mn}${mx!==mn?`–${mx}`:''}${src}`; }).join('；'); };
+  window.ItemDrops.formatBrief=function(drops){ if(!Array.isArray(drops)||drops.length===0) return '—'; return drops.map(d=>{ const pct=Math.round(valOr(d.chance,0)*100); const mn=valOr(d.min,1), mx=valOr(d.max,mn); const src=(d.sourceType&&d.sourceId)?`（${d.sourceType}:${d.sourceId}）`:''; return `${pct}% × ${mn}${mx!==mn?`–${mx}`:''}${src}`; }).join('；'); };
 })();

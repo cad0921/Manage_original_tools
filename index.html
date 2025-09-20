@@ -944,6 +944,8 @@
         // ----------------------------- Data Types -----------------------------
         const LS_KEY = 'asset-cms-v1';
         const uid = () => Math.random().toString(36).slice(2, 9);
+        const hasValue = (value) => value !== undefined && value !== null;
+        const valueOr = (value, fallback) => hasValue(value) ? value : fallback;
         const terrainApiUrl = 'terrain_api.php';
         const itemApiUrl = 'item_api.php';
         let pendingOpenItemId = null;
@@ -1515,16 +1517,16 @@
             if (!Array.isArray(drops) || drops.length === 0) return '—';
             const labelMap = new Map((sourceOptions || []).map(opt => [opt.id, opt.label]));
             return drops.map(d => {
-                const chanceNum = Math.max(0, Math.min(1, Number(d?.chance ?? 0)));
+                const chanceNum = Math.max(0, Math.min(1, Number(valueOr(d && d.chance, 0))));
                 const chance = Math.round(chanceNum * 100);
-                let min = parseInt(d?.min ?? 0, 10);
+                let min = parseInt(valueOr(d && d.min, 0), 10);
                 if (!Number.isFinite(min) || isNaN(min) || min < 0) min = 0;
-                let max = parseInt(d?.max ?? min, 10);
+                let max = parseInt(valueOr(d && d.max, min), 10);
                 if (!Number.isFinite(max) || isNaN(max) || max < min) max = min;
                 const qty = min === max ? `${min}` : `${min}-${max}`;
-                const type = (d?.sourceType ?? '').toString().trim();
+                const type = String(valueOr(d && d.sourceType, '')).trim();
                 const label = type ? (labelMap.get(type) || dropLabelFallback[type] || type) : '';
-                const sourceId = (d?.sourceId ?? '').toString().trim();
+                const sourceId = String(valueOr(d && d.sourceId, '')).trim();
                 const sourceText = type ? `${label}${sourceId ? `:${sourceId}` : ''}` : '';
                 return `${chance}% × ${qty}${sourceText ? `（${sourceText}）` : ''}`;
             }).join('；');
@@ -1550,16 +1552,16 @@
 
             const sanitize = (raw) => {
                 const baseType = options.length > 0 ? options[0].id : 'entity';
-                let chance = parseFloat(raw?.chance ?? 0);
+                let chance = parseFloat(valueOr(raw && raw.chance, 0));
                 if (!Number.isFinite(chance)) chance = 0;
                 chance = Math.max(0, Math.min(1, chance));
-                let min = parseInt(raw?.min ?? 0, 10);
+                let min = parseInt(valueOr(raw && raw.min, 0), 10);
                 if (!Number.isFinite(min) || isNaN(min) || min < 0) min = 0;
-                let max = parseInt(raw?.max ?? min, 10);
+                let max = parseInt(valueOr(raw && raw.max, min), 10);
                 if (!Number.isFinite(max) || isNaN(max) || max < min) max = min;
-                let sourceType = (raw?.sourceType ?? '').toString().trim();
+                let sourceType = String(valueOr(raw && raw.sourceType, '')).trim();
                 if (sourceType === '') sourceType = baseType;
-                const sourceId = (raw?.sourceId ?? '').toString().trim();
+                const sourceId = String(valueOr(raw && raw.sourceId, '')).trim();
                 return { chance, min, max, sourceType, sourceId };
             };
 
@@ -1580,7 +1582,8 @@
                     option.textContent = value;
                     select.appendChild(option);
                 }
-                select.value = value || (options[0]?.id ?? '');
+                const fallbackValue = options[0] && options[0].id ? options[0].id : '';
+                select.value = value || fallbackValue;
             }
 
             function triggerChange() {
@@ -1685,7 +1688,7 @@
             }
 
             addBtn.addEventListener('click', () => {
-                const defaultType = options[0]?.id ?? 'entity';
+                const defaultType = options[0] && options[0].id ? options[0].id : 'entity';
                 drops.push(sanitize({ chance: 1, min: 1, max: 1, sourceType: defaultType, sourceId: '' }));
                 render();
                 triggerChange();
@@ -1720,7 +1723,11 @@
         addItem.onclick = async () => {
             const name = iName.value.trim();
             if (!name) return alert('請輸入名稱');
-            const categoryId = iCategory.value || (project.itemCategories?.[0]?.id ?? 'decor');
+            const firstCategory = (project.itemCategories && project.itemCategories.length > 0)
+                ? project.itemCategories[0]
+                : null;
+            const fallbackCategoryId = firstCategory && firstCategory.id ? firstCategory.id : 'decor';
+            const categoryId = iCategory.value || fallbackCategoryId;
             const terrains = Array.from(document.querySelectorAll('#iTerrainChecks input[type=checkbox]:checked')).map(x => x.dataset.tid);
             const notes = iNote.value.trim();
 
@@ -1762,8 +1769,8 @@
                     throw new Error(data.message || '新增物品失敗');
                 }
 
-                pendingOpenItemId = data.item?.id || null;
-                pendingOpenCategoryId = data.item?.categoryId || null;
+                pendingOpenItemId = data.item && data.item.id ? data.item.id : null;
+                pendingOpenCategoryId = data.item && data.item.categoryId ? data.item.categoryId : null;
                 updateItemsState(data.items, data.categories);
 
                 iName.value = '';
@@ -2169,8 +2176,8 @@
                 chance: Number(clip.chance),
                 frames: Array.isArray(clip.frames)
                     ? clip.frames.map(frame => ({
-                        src: frame?.src || '',
-                        duration: Number(frame?.duration)
+                        src: frame && frame.src ? frame.src : '',
+                        duration: Number(frame && frame.duration)
                     }))
                     : []
             };
@@ -2202,7 +2209,7 @@
                 input.type = 'number';
                 input.step = '0.01';
                 input.min = '0.01';
-                input.value = String(frame.duration ?? '');
+                input.value = String(valueOr(frame.duration, ''));
                 input.oninput = () => { frame.custom = true; };
                 input.onchange = () => {
                     const val = Math.max(0.01, Number(input.value || 0));
@@ -2331,7 +2338,8 @@
             if (frames.length === 0) return alert('請選擇至少 1 張有效的幀圖片');
             const totalSeconds = frames.reduce((sum, frame) => sum + frame.duration, 0);
             const usage = clipUsage ? (clipUsage.value || 'idle') : 'idle';
-            let chance = usage === 'random' ? Number(clipChance?.value || 0.25) : 1;
+            const chanceInputValue = clipChance ? clipChance.value : undefined;
+            let chance = usage === 'random' ? Number(chanceInputValue || 0.25) : 1;
             if (!Number.isFinite(chance)) chance = usage === 'random' ? 0.25 : 1;
             chance = Math.max(0, Math.min(1, chance));
             tempClips.push({ name, fps, frames, usage, chance });
@@ -2392,7 +2400,8 @@
                     attractedItemIds: attractItems
                 };
                 const idleClip = newClips.find(c => c.usage === 'idle');
-                newAn.idleClipName = idleClip ? idleClip.name : (newClips[0]?.name || '');
+                const firstClip = newClips.length > 0 ? newClips[0] : null;
+                newAn.idleClipName = idleClip ? idleClip.name : (firstClip && firstClip.name ? firstClip.name : '');
                 project.animals.push(newAn);
                 previewAnimal.value = newAn.id;
             }
@@ -2431,8 +2440,14 @@
                         return `${c.name}（${pct}%｜${frames.length}幀/${totalSec.toFixed(2)}秒）`;
                     }).join('<br/>')
                     : '-';
-                const terrainsText = (an.spawnTerrains || []).map(id => project.terrains.find(t => t.id === id)?.name || id).join(', ') || '-';
-                const attractText = (an.attractedItemIds || []).map(id => project.items.find(it => it.id === id)?.name || id).join(', ') || '-';
+                const terrainsText = (an.spawnTerrains || []).map(id => {
+                    const terrain = (project.terrains || []).find(t => t.id === id);
+                    return terrain && terrain.name ? terrain.name : id;
+                }).join(', ') || '-';
+                const attractText = (an.attractedItemIds || []).map(id => {
+                    const item = (project.items || []).find(it => it.id === id);
+                    return item && item.name ? item.name : id;
+                }).join(', ') || '-';
                 card.querySelector('.kvs').innerHTML = `<div>ID</div><div>${an.id}</div><div>閒置動畫</div><div>${idleSummary}</div><div>機率動畫</div><div>${randomSummary}</div><div>生成地形</div><div>${terrainsText}</div><div>誘餌物品</div><div>${attractText}</div>`;
                 card.querySelector('.edit').onclick = () => {
                     const newName = prompt('動物名稱', an.name);
@@ -2488,7 +2503,7 @@
             const current = previewClip.value;
             previewClip.innerHTML = '';
             const an = project.animals.find(a => a.id === previewAnimal.value);
-            const clips = (an?.clips || []).slice();
+            const clips = (an && Array.isArray(an.clips)) ? an.clips.slice() : [];
             if (!an || clips.length === 0) { loadPreviewFrames(); return; }
             clips.sort((a, b) => {
                 const idleName = an.idleClipName || '';
@@ -2544,7 +2559,7 @@
             requestAnimationFrame(animLoop);
             actx.clearRect(0, 0, animCanvas.width, animCanvas.height);
             const an = project.animals.find(a => a.id === previewAnimal.value);
-            const c = an?.clips.find(x => x.name === previewClip.value);
+            const c = (an && Array.isArray(an.clips)) ? an.clips.find(x => x.name === previewClip.value) : undefined;
             if (!an || !c || loadedFrames.length === 0) { animLastTs = ts; return; }
             const dt = animLastTs ? Math.max(0, (ts - animLastTs) / 1000) : 0;
             animLastTs = ts;
@@ -2559,7 +2574,7 @@
                 frameData = loadedFrames[animIdx];
                 guard++;
             }
-            const img = frameData?.img;
+            const img = frameData && frameData.img ? frameData.img : null;
             if (!img || !img.complete || !img.width || !img.height) return;
             const scale = Math.min(animCanvas.width / img.width, animCanvas.height / img.height);
             const w = img.width * scale, h = img.height * scale; const x = (animCanvas.width - w) / 2, y = (animCanvas.height - h) / 2;
@@ -2573,7 +2588,7 @@
         const eSource = document.getElementById('eSource');
         const eName = document.getElementById('eName');
         const eImage = document.getElementById('eImage');
-        const eImageRow = eImage?.closest('.row') || null;
+        const eImageRow = eImage ? eImage.closest('.row') : null;
         const hitCanvas = document.getElementById('hitCanvas');
         const hctx = hitCanvas.getContext('2d');
         const hitList = document.getElementById('hitList');
@@ -2700,7 +2715,9 @@
                     sourceId: item.id,
                     baseName: item.name || item.id,
                     displayName: (entry && entry.name) || item.name || item.id,
-                    categoryLabel: category?.label || dropLabelFallback[item.categoryId] || item.categoryId || '',
+                    categoryLabel: (category && category.label)
+                        ? category.label
+                        : (dropLabelFallback[item.categoryId] || item.categoryId || ''),
                     imageSrc,
                     entry
                 });
@@ -2744,8 +2761,8 @@
 
             const typeOrder = { item: 0, animal: 1, custom: 2, unknown: 3 };
             sources.sort((a, b) => {
-                const ao = typeOrder[a.type] ?? 99;
-                const bo = typeOrder[b.type] ?? 99;
+                const ao = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 99;
+                const bo = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 99;
                 if (ao !== bo) return ao - bo;
                 return (a.baseName || '').localeCompare(b.baseName || '', 'zh-Hant');
             });
@@ -2868,7 +2885,9 @@
             updateImageInputState(source.type);
             const entry = findEntityEntryByKey(key);
             if (source.type === 'custom') {
-                const imgSrc = entry?.imageDataUrl || entry?.imagePath || null;
+                const entryImageDataUrl = entry && entry.imageDataUrl ? entry.imageDataUrl : null;
+                const entryImagePath = entry && entry.imagePath ? entry.imagePath : null;
+                const imgSrc = entryImageDataUrl || entryImagePath || null;
                 loadEntityImage(imgSrc);
             } else {
                 const imgSrc = source.imageSrc || placeholderIcon();
@@ -2879,7 +2898,7 @@
                 renderHitList();
             }
             const fallbackName = source.displayName || source.baseName || '';
-            eName.value = entry?.name || fallbackName;
+            eName.value = entry && entry.name ? entry.name : fallbackName;
             refreshEntitySourceOptions();
             drawHitCanvas();
         }
@@ -2998,9 +3017,15 @@
                 alert('請先選擇來源或新增自訂生物');
                 return;
             }
-            const sourceType = currentEntitySource?.type || currentEntityKey.split(':')[0] || 'custom';
-            const sourceId = currentEntitySource?.sourceId || currentEntityKey.split(':').slice(1).join(':') || currentEntityKey;
-            const defaultName = currentEntitySource?.displayName || currentEntitySource?.baseName || sourceId || '';
+            const resolvedType = currentEntitySource && currentEntitySource.type ? currentEntitySource.type : '';
+            const sourceType = resolvedType || currentEntityKey.split(':')[0] || 'custom';
+            const resolvedId = currentEntitySource && currentEntitySource.sourceId ? currentEntitySource.sourceId : '';
+            const sourceId = resolvedId || currentEntityKey.split(':').slice(1).join(':') || currentEntityKey;
+            let defaultName = '';
+            if (currentEntitySource) {
+                defaultName = currentEntitySource.displayName || currentEntitySource.baseName || '';
+            }
+            if (!defaultName) defaultName = sourceId || '';
             const name = eName.value.trim() || defaultName;
             if (!name) return alert('請輸入生物名稱');
             if (!entityImage) return alert('請先載入底圖');
@@ -3023,7 +3048,9 @@
             entry.hitboxes = JSON.parse(JSON.stringify(hitboxes));
             entry.updatedAt = new Date().toISOString();
             if (sourceType === 'custom') {
-                entry.imageDataUrl = entityImageSource || (entityImage?.src ?? entry.imageDataUrl ?? null);
+                const liveSrc = entityImage && entityImage.src ? entityImage.src : null;
+                const existingSrc = hasValue(entry.imageDataUrl) ? entry.imageDataUrl : null;
+                entry.imageDataUrl = entityImageSource || liveSrc || existingSrc || null;
             } else {
                 delete entry.imageDataUrl;
             }
@@ -3093,7 +3120,7 @@
             const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = 'game-assets.json'; a.click(); URL.revokeObjectURL(url);
         };
         document.getElementById('importJson').onchange = async (e) => {
-            const f = e.target.files?.[0]; if (!f) return; const txt = await f.text();
+            const f = e.target.files && e.target.files[0]; if (!f) return; const txt = await f.text();
             try { project = JSON.parse(txt); saveProject(); alert('匯入完成'); updatePreviewSelectors(); }
             catch (err) { alert('匯入失敗：JSON 格式錯誤'); }
             e.target.value = '';
