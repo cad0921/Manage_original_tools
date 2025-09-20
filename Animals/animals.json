@@ -12,12 +12,7 @@
         "defense": 6,
         "speed": 14
       },
-      "drops": [
-        {
-          "itemId": "wolf_pelt",
-          "chance": 0.35
-        }
-      ]
+      "drops": []
     }
   ],
   "metadata": {

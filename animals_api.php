@@ -25,10 +25,33 @@ function ensure_dir($p, $fatal = true){
   if ($fatal) respond(500,["status"=>"error","message"=>"無法建立目錄"]);
   return false;
 }
-function try_save($path,$data){ ensure_dir(dirname($path)); $j=json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT); $tmp=$path.'.tmp_'.substr(sha1((string)microtime(true)),0,6); $b=@file_put_contents($tmp,$j,LOCK_EX); if($b===false) respond(500,["status"=>"error","message"=>"無法建立暫存檔"]); if(!@rename($tmp,$path)){ @unlink($tmp); respond(500,["status"=>"error","message"=>"無法寫入檔案"]); } @chmod($path,0666); }
+function try_save($path,$data){
+  ensure_dir(dirname($path));
+  $j=json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT);
+  $tmp=$path.'.tmp_'.substr(sha1((string)microtime(true)),0,6);
+  $b=@file_put_contents($tmp,$j,LOCK_EX);
+  if($b===false){
+    @unlink($tmp);
+    $fallback=false;
+    if(is_file($path) && @is_writable($path)){
+      $fallback=@file_put_contents($path,$j,LOCK_EX);
+    }
+    if($fallback===false){
+      respond(500,["status"=>"error","message"=>"無法寫入檔案（暫存檔建立失敗且原檔不可寫）"]);
+    }
+    @chmod($path,0666);
+    return;
+  }
+  if(!@rename($tmp,$path)){
+    @unlink($tmp);
+    respond(500,["status"=>"error","message"=>"無法寫入檔案"]);
+  }
+  @chmod($path,0666);
+}
 function load_json($path,$rootKey){ if(!file_exists($path)){ $seed=[$rootKey=>[]]; @file_put_contents($path, json_encode($seed, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)); return $seed; } $txt=@file_get_contents($path); $d=json_decode($txt,true); if(!is_array($d)) $d=[$rootKey=>[]]; if(!isset($d[$rootKey])||!is_array($d[$rootKey])) $d[$rootKey]=[]; return $d; }
 function slugify($s){ $s = mb_strtolower(trim((string)$s),'UTF-8'); $s = preg_replace('/[^\p{L}\p{N}\-_\s]/u','',$s) ?? ''; $s = preg_replace('/\s+/', '-', $s) ?? ''; return $s !== '' ? $s : 'animal'; }
 function parse_array_field($key){ if(isset($_POST[$key])){ $raw=$_POST[$key]; if(is_array($raw)) return array_values(array_filter($raw, fn($v)=>$v!=='')); $j=json_decode($raw,true); if(is_array($j)) return $j; $parts=array_map('trim', explode(',', (string)$raw)); return array_values(array_filter($parts, fn($v)=>$v!=='')); } $out=[]; foreach($_POST as $k=>$v){ if(preg_match('/^'.preg_quote($key,'/').'\[\]$/',$k)){ if(is_array($v)) $out=array_merge($out,$v); else $out[]=$v; } } return $out; }
+function has_array_field($key){ if(array_key_exists($key,$_POST)) return true; foreach($_POST as $k=>$v){ if(strpos($k,$key.'[')===0) return true; } return false; }
 function parse_drops_from_request($key='drops'){ $raw=$_POST[$key]??''; if($raw===''||$raw===null) return []; $data=json_decode($raw,true); if(!is_array($data)) return []; $out=[]; foreach($data as $d){ $chance=isset($d['chance'])?(float)$d['chance']:0.0; if($chance<0)$chance=0; if($chance>1)$chance=1; $min=isset($d['min'])?(int)$d['min']:1; $max=isset($d['max'])?(int)$d['max']:$min; if($min<0)$min=0; if($max<$min)$max=$min; $entry=['chance'=>$chance,'min'=>$min,'max'=>$max]; if(isset($d['itemId'])) $entry['itemId']=(string)$d['itemId']; $out[]=$entry; } return $out; }
 function ensure_item_categories(&$data){ if(!isset($data['categories'])||!is_array($data['categories'])) $data['categories']=[]; $have=[]; foreach($data['categories'] as $c){ $have[$c['id']??'']=true; } if(empty($have['animal'])) $data['categories'][]=['id'=>'animal','name'=>'生物','label'=>'生物']; }
 
@@ -47,8 +70,10 @@ if ($action === 'create') {
   $name = trim($_POST['name'] ?? '');
   if ($name === '') respond(400, ["status"=>"error","handledAction"=>"create","message"=>"name is required"]);
   $notes = trim($_POST['notes'] ?? '');
-  $dropSetIds = parse_array_field('dropSetIds');
-  $drops = parse_drops_from_request('drops');
+  $hasDropSetIdsInput = has_array_field('dropSetIds');
+  $dropSetIds = $hasDropSetIdsInput ? parse_array_field('dropSetIds') : [];
+  $hasDropsInput = array_key_exists('drops', $_POST);
+  $drops = $hasDropsInput ? parse_drops_from_request('drops') : [];
 
   $slug = slugify($name);
   $id = $slug.'_'.substr(sha1(uniqid('',true)),0,6);
@@ -97,7 +122,11 @@ if ($action === 'create') {
   }
   // remove existing same id if any
   $idx=-1; foreach ($items['items'] as $i=>$it) if (($it['id']??'')===$itemId){ $idx=$i; break; }
-  $mirrored = ['id'=>$itemId,'linkedAnimalId'=>$id,'name'=>$name,'categoryId'=>'animal','notes'=>$notes,'image'=>$itemImage,'dropSetIds'=>$dropSetIds,'drops'=>$drops,'createdAt'=>gmdate('c'),'updatedAt'=>gmdate('c')];
+  $existingItem = $idx===-1 ? null : $items['items'][$idx];
+  $mirroredDropSetIds = $hasDropSetIdsInput ? $dropSetIds : ($existingItem['dropSetIds'] ?? $dropSetIds);
+  $mirroredDrops = $hasDropsInput ? $drops : ($existingItem['drops'] ?? $drops);
+  $createdAt = $existingItem['createdAt'] ?? gmdate('c');
+  $mirrored = ['id'=>$itemId,'linkedAnimalId'=>$id,'name'=>$name,'categoryId'=>'animal','notes'=>$notes,'image'=>$itemImage,'dropSetIds'=>$mirroredDropSetIds,'drops'=>$mirroredDrops,'createdAt'=>$createdAt,'updatedAt'=>gmdate('c')];
   if ($idx===-1) { $items['items'][]=$mirrored; } else { $items['items'][$idx]=$mirrored; }
   try_save($itemsJson, $items);
 
@@ -113,8 +142,10 @@ if ($action === 'update') {
   $changed=false;
   if(isset($_POST['name'])){ $animals['animals'][$aidx]['name']=trim((string)$_POST['name']); $changed=true; }
   if(isset($_POST['notes'])){ $animals['animals'][$aidx]['notes']=trim((string)$_POST['notes']); $changed=true; }
-  if(isset($_POST['dropSetIds'])){ $animals['animals'][$aidx]['dropSetIds']=parse_array_field('dropSetIds'); $changed=true; }
-  if(isset($_POST['drops'])){ $animals['animals'][$aidx]['drops']=parse_drops_from_request('drops'); $changed=true; }
+  $hasIncomingDropSetIds = has_array_field('dropSetIds');
+  if($hasIncomingDropSetIds){ $animals['animals'][$aidx]['dropSetIds']=parse_array_field('dropSetIds'); $changed=true; }
+  $hasIncomingDrops = array_key_exists('drops', $_POST);
+  if($hasIncomingDrops){ $animals['animals'][$aidx]['drops']=parse_drops_from_request('drops'); $changed=true; }
 
   $dir = $animalsDir.'/'.$id; ensure_dir($dir);
   if (!empty($_FILES['image']) && (($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE)) {
@@ -153,14 +184,21 @@ if ($action === 'update') {
       }
     }
   }
+  $existingItem = $iidx===-1 ? null : $items['items'][$iidx];
+  $mirroredDropSetIds = $hasIncomingDropSetIds
+    ? ($animals['animals'][$aidx]['dropSetIds'] ?? [])
+    : ($existingItem['dropSetIds'] ?? ($animals['animals'][$aidx]['dropSetIds'] ?? []));
+  $mirroredDrops = $hasIncomingDrops
+    ? ($animals['animals'][$aidx]['drops'] ?? [])
+    : ($existingItem['drops'] ?? ($animals['animals'][$aidx]['drops'] ?? []));
   $mirrored = [
     'id'=>$itemId,'linkedAnimalId'=>$id,
     'name'=>$animals['animals'][$aidx]['name'],
     'categoryId'=>'animal',
     'notes'=>$animals['animals'][$aidx]['notes'],
     'image'=>$itemImage,
-    'dropSetIds'=>$animals['animals'][$aidx]['dropSetIds'] ?? [],
-    'drops'=>$animals['animals'][$aidx]['drops'] ?? [],
+    'dropSetIds'=>$mirroredDropSetIds,
+    'drops'=>$mirroredDrops,
     'createdAt'=>$items['items'][$iidx]['createdAt'] ?? gmdate('c'),
     'updatedAt'=>gmdate('c')
   ];
