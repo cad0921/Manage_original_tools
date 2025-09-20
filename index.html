@@ -1597,8 +1597,9 @@
             if (!Array.isArray(drops) || drops.length === 0) return '—';
             const labelMap = new Map((sourceOptions || []).map(opt => [opt.id, opt.label]));
             return drops.map(d => {
-                const chanceNum = Math.max(0, Math.min(1, Number(valueOr(d && d.chance, 0))));
-                const chance = Math.round(chanceNum * 100);
+                const chanceRaw = Number(valueOr(d && d.chance, 0));
+                const clampedChance = Math.max(0, Math.min(1, Number.isFinite(chanceRaw) ? chanceRaw : 0));
+                const chance = Math.round(clampedChance * 100);
                 let min = parseInt(valueOr(d && d.min, 0), 10);
                 if (!Number.isFinite(min) || isNaN(min) || min < 0) min = 0;
                 let max = parseInt(valueOr(d && d.max, min), 10);
