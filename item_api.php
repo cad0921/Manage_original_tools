@@ -101,6 +101,45 @@ function parse_drops_from_request($key='drops'){
   }
   return $out;
 }
+
+function default_ai_payload(){
+  return ['enabled'=>false,'dialogues'=>[]];
+}
+
+function sanitize_ai_array($raw){
+  if (!is_array($raw)) $raw = [];
+  $enabled = parse_bool_like($raw['enabled'] ?? false);
+  $dialogues = [];
+  if (isset($raw['dialogues']) && is_array($raw['dialogues'])) {
+    foreach ($raw['dialogues'] as $dialog) {
+      if (!is_array($dialog)) continue;
+      $trigger = trim((string)($dialog['trigger'] ?? ''));
+      $tone = trim((string)($dialog['tone'] ?? ''));
+      $line = trim((string)($dialog['line'] ?? ($dialog['text'] ?? '')));
+      if ($trigger === '' && $tone === '' && $line === '') continue;
+      $entry = [];
+      if ($trigger !== '') $entry['trigger'] = $trigger;
+      if ($tone !== '') $entry['tone'] = $tone;
+      if ($line !== '') $entry['line'] = $line;
+      $dialogues[] = $entry;
+    }
+  }
+  return ['enabled'=>$enabled,'dialogues'=>$dialogues];
+}
+
+function parse_ai_from_request($key='ai'){
+  if (!isset($_POST[$key])) return null;
+  $raw = $_POST[$key];
+  if (is_array($raw)) {
+    return sanitize_ai_array($raw);
+  }
+  $rawStr = trim((string)$raw);
+  if ($rawStr === '' || strtolower($rawStr) === 'null') return null;
+  $decoded = json_decode($rawStr, true);
+  if (!is_array($decoded)) return null;
+  return sanitize_ai_array($decoded);
+}
+
 function seed_categories(){
   return [
     ["id"=>"material","name"=>"素材","label"=>"素材"],
@@ -137,6 +176,22 @@ function load_items_json($jsonPath){
     if (!isset($c["label"]) || $c["label"]==="") $c["label"]=$c["name"] ?? ($c["id"] ?? "");
   } unset($c);
 
+  if (isset($data['items']) && is_array($data['items'])) {
+    foreach ($data['items'] as &$it) {
+      if (!is_array($it)) continue;
+      $category = isset($it['categoryId']) ? (string)$it['categoryId'] : '';
+      if ($category === 'animal') {
+        $it['ai'] = sanitize_ai_array($it['ai'] ?? ($it['creature'] ?? []));
+      } elseif (isset($it['ai'])) {
+        $it['ai'] = sanitize_ai_array($it['ai']);
+      }
+      if (isset($it['creature'])) {
+        unset($it['creature']);
+      }
+    }
+    unset($it);
+  }
+
   return $data;
 }
 
@@ -159,6 +214,7 @@ if ($action === 'create') {
   $categoryId = trim($_POST['categoryId'] ?? '');
   $notes = trim($_POST['notes'] ?? '');
   $terrains = parse_array_field('terrains');
+  $aiData = parse_ai_from_request('ai');
 
   if ($name === '') respond(400, ["status"=>"error","handledAction"=>"create","message"=>"name is required"]);
   if ($categoryId === '') $categoryId = 'material';
@@ -194,6 +250,11 @@ if ($action === 'create') {
     'createdAt'=>gmdate('c'),'updatedAt'=>gmdate('c'),
     'drops'=>parse_drops_from_request('drops')
   ];
+  if ($categoryId === 'animal') {
+    $item['ai'] = $aiData ?? default_ai_payload();
+  } elseif ($aiData !== null) {
+    $item['ai'] = $aiData;
+  }
   $items[] = $item; $data['items'] = $items; try_save_items($jsonPath,$data);
 
   respond(200, ["status"=>"ok","handledAction"=>"create","item"=>$item,"items"=>$data["items"],"categories"=>$data["categories"]]);
@@ -211,6 +272,30 @@ if ($action === 'update') {
   if(isset($_POST['notes'])){ $items[$idx]['notes']=trim((string)$_POST['notes']); $changed=true; }
   if(isset($_POST['terrains'])){ $items[$idx]['terrains']=parse_array_field('terrains'); $changed=true; }
   if(isset($_POST['drops'])){ $items[$idx]['drops']=parse_drops_from_request('drops'); $changed=true; }
+
+  $finalCategoryId = trim((string)($items[$idx]['categoryId'] ?? ''));
+
+  if(isset($_POST['ai'])){
+    $ai = parse_ai_from_request('ai');
+    if ($finalCategoryId === 'animal') {
+      $items[$idx]['ai'] = $ai ?? default_ai_payload();
+    } else {
+      unset($items[$idx]['ai']);
+    }
+    $changed = true;
+  } else {
+    if ($finalCategoryId === 'animal') {
+      if (!isset($items[$idx]['ai']) || !is_array($items[$idx]['ai'])) {
+        $items[$idx]['ai'] = default_ai_payload();
+        $changed = true;
+      } else {
+        $items[$idx]['ai'] = sanitize_ai_array($items[$idx]['ai']);
+      }
+    } elseif (isset($items[$idx]['ai'])) {
+      unset($items[$idx]['ai']);
+      $changed = true;
+    }
+  }
 
   // 圖片處理
   $dir = $itemsDir.'/'.$id;

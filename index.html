@@ -139,6 +139,113 @@
             color: var(--muted)
         }
 
+        .row.ai-row {
+            align-items: flex-start;
+        }
+
+        .ai-editor-host {
+            flex: 1;
+        }
+
+        .ai-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .ai-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #0f1534;
+            border: 1px solid #1d2550;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .ai-group-title {
+            font-weight: 600;
+            color: #d7e0ff;
+        }
+
+        .ai-note {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .ai-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-dialogue-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ai-dialogue-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #1f2955;
+            background: #0c1434;
+        }
+
+        .ai-dialogue-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .ai-inline {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1 1 160px;
+            min-width: 140px;
+        }
+
+        .ai-inline.small {
+            flex: 0 0 160px;
+        }
+
+        .ai-inline.grow {
+            flex: 2 1 260px;
+            min-width: 220px;
+        }
+
+        .ai-inline-label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .ai-inline textarea {
+            min-height: 60px;
+        }
+
+        .ai-empty {
+            font-size: 13px;
+            color: var(--muted);
+            border: 1px dashed #27306b;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .ai-dialogue-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .ai-editor .btn.secondary {
+            align-self: flex-start;
+        }
+
         input[type="text"],
         input[type="number"],
         textarea,
@@ -811,6 +918,10 @@
                         <div class="row item-drop-row"><label>掉落設定</label>
                             <div id="iDropEditor" class="drop-editor-wrap"></div>
                         </div>
+                        <div class="row ai-row" id="iAiFields">
+                            <label>AI 設定</label>
+                            <div class="ai-editor-host" id="iAiEditorHost"></div>
+                        </div>
                         <div class="row"><button id="addItem" class="btn">新增物品</button></div>
                     </div>
                     <div>
@@ -1403,8 +1514,68 @@
             }
         }
 
+        function parseBooleanLike(value) {
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true;
+                if (['false', '0', 'no', 'n', 'off', ''].includes(normalized)) return false;
+            }
+            if (typeof value === 'number') {
+                return value !== 0;
+            }
+            return false;
+        }
+
+        function sanitizeAiData(raw) {
+            const source = raw && typeof raw === 'object' ? raw : {};
+            const enabled = parseBooleanLike(source.enabled);
+            const dialogues = Array.isArray(source.dialogues) ? source.dialogues.map(dialog => {
+                if (!dialog || typeof dialog !== 'object') return null;
+                const trigger = (dialog.trigger ?? '').toString().trim();
+                const tone = (dialog.tone ?? '').toString().trim();
+                const line = (dialog.line ?? dialog.text ?? '').toString().trim();
+                if (!trigger && !tone && !line) return null;
+                const entry = {};
+                if (trigger) entry.trigger = trigger;
+                if (tone) entry.tone = tone;
+                if (line) entry.line = line;
+                return entry;
+            }).filter(Boolean) : [];
+            return { enabled, dialogues };
+        }
+
+        function formatAiSummary(ai) {
+            const data = sanitizeAiData(ai);
+            if (!data.enabled) return '未啟用';
+            const parts = ['啟用'];
+            parts.push(`對話 ${data.dialogues.length} 則`);
+            const preview = data.dialogues.find(d => d.line)?.line || data.dialogues[0]?.trigger || '';
+            if (preview) {
+                const short = preview.length > 12 ? `${preview.slice(0, 12)}…` : preview;
+                parts.push(`範例：${short}`);
+            }
+            return parts.join('｜');
+        }
+
         function updateItemsState(items, categories) {
-            project.items = Array.isArray(items) ? items : [];
+            if (Array.isArray(items)) {
+                project.items = items.map(it => {
+                    if (!it || typeof it !== 'object') return it;
+                    const copy = { ...it };
+                    if (String(copy.categoryId || '') === 'animal') {
+                        copy.ai = sanitizeAiData(copy.ai ?? copy.creature);
+                    } else if (copy.ai) {
+                        copy.ai = sanitizeAiData(copy.ai);
+                    }
+                    if (copy.creature !== undefined) {
+                        delete copy.creature;
+                    }
+                    return copy;
+                });
+            } else {
+                project.items = [];
+            }
             ensureItemCategories(categories);
             saveProject();
         }
@@ -1425,6 +1596,7 @@
             } else if (iCategory.options.length > 0 && !iCategory.value) {
                 iCategory.value = iCategory.options[0].value;
             }
+            updateCreateAiVisibility();
         }
 
         const dropLabelFallback = {
@@ -1661,10 +1833,225 @@
             };
         }
 
+        function createAiEditor({ initialValue = null, onChange } = {}) {
+            const toInternal = (input) => {
+                const sanitized = sanitizeAiData(input || {});
+                return {
+                    enabled: !!sanitized.enabled,
+                    dialogues: sanitized.dialogues.map(dialog => ({ ...dialog, uid: uid() }))
+                };
+            };
+            let value = toInternal(initialValue);
+
+            const getValue = () => {
+                const enabled = !!parseBooleanLike(value.enabled);
+                const dialogues = value.dialogues.map(dialog => {
+                    const trigger = (dialog.trigger ?? '').toString().trim();
+                    const tone = (dialog.tone ?? '').toString().trim();
+                    const line = (dialog.line ?? '').toString().trim();
+                    if (!trigger && !tone && !line) return null;
+                    const entry = {};
+                    if (trigger) entry.trigger = trigger;
+                    if (tone) entry.tone = tone;
+                    if (line) entry.line = line;
+                    return entry;
+                }).filter(Boolean);
+                return { enabled, dialogues };
+            };
+
+            const emitChange = () => {
+                if (typeof onChange === 'function') {
+                    onChange(getValue());
+                }
+            };
+
+            const container = document.createElement('div');
+            container.className = 'ai-editor';
+
+            const toggleGroup = document.createElement('div');
+            toggleGroup.className = 'ai-group';
+            const toggleTitle = document.createElement('div');
+            toggleTitle.className = 'ai-group-title';
+            toggleTitle.textContent = '啟用狀態';
+            const toggleWrap = document.createElement('div');
+            toggleWrap.className = 'ai-toggle';
+            const toggleCheckbox = document.createElement('input');
+            toggleCheckbox.type = 'checkbox';
+            toggleCheckbox.checked = !!value.enabled;
+            const toggleLabel = document.createElement('span');
+            toggleLabel.textContent = '此物品具備 AI 行為';
+            toggleWrap.append(toggleCheckbox, toggleLabel);
+            const toggleNote = document.createElement('div');
+            toggleNote.className = 'ai-note';
+            toggleNote.textContent = '開啟後可設定對話腳本與其他反應。';
+            toggleGroup.append(toggleTitle, toggleWrap, toggleNote);
+            container.appendChild(toggleGroup);
+
+            const dialoguesGroup = document.createElement('div');
+            dialoguesGroup.className = 'ai-group';
+            const dialoguesTitle = document.createElement('div');
+            dialoguesTitle.className = 'ai-group-title';
+            dialoguesTitle.textContent = '對話腳本';
+            const dialoguesNote = document.createElement('div');
+            dialoguesNote.className = 'ai-note';
+            dialoguesNote.textContent = '整理 AI 在不同情境下的台詞，提供觸發條件與語氣等補充資訊。';
+            const dialogueList = document.createElement('div');
+            dialogueList.className = 'ai-dialogue-list';
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'btn secondary';
+            addBtn.textContent = '＋新增對話';
+            dialoguesGroup.append(dialoguesTitle, dialoguesNote, dialogueList, addBtn);
+            container.appendChild(dialoguesGroup);
+
+            function renderDialogues() {
+                const disabled = !value.enabled;
+                dialogueList.innerHTML = '';
+                if (value.dialogues.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'ai-empty';
+                    empty.textContent = value.enabled ? '尚未新增對話。' : '尚未啟用 AI。勾選上方開關後可新增對話。';
+                    dialogueList.appendChild(empty);
+                }
+                value.dialogues.forEach((dialog, idx) => {
+                    if (!dialog.uid) dialog.uid = uid();
+                    const row = document.createElement('div');
+                    row.className = 'ai-dialogue-row';
+
+                    const fields = document.createElement('div');
+                    fields.className = 'ai-dialogue-fields';
+
+                    const triggerWrap = document.createElement('div');
+                    triggerWrap.className = 'ai-inline small';
+                    const triggerLabel = document.createElement('div');
+                    triggerLabel.className = 'ai-inline-label';
+                    triggerLabel.textContent = '觸發條件';
+                    const triggerInput = document.createElement('input');
+                    triggerInput.type = 'text';
+                    triggerInput.placeholder = '例：玩家互動、遭遇戰鬥';
+                    triggerInput.value = dialog.trigger || '';
+                    triggerInput.addEventListener('input', () => {
+                        dialog.trigger = triggerInput.value;
+                    });
+                    triggerInput.addEventListener('change', () => {
+                        dialog.trigger = triggerInput.value.trim();
+                        triggerInput.value = dialog.trigger;
+                        emitChange();
+                    });
+                    triggerWrap.append(triggerLabel, triggerInput);
+
+                    const toneWrap = document.createElement('div');
+                    toneWrap.className = 'ai-inline small';
+                    const toneLabel = document.createElement('div');
+                    toneLabel.className = 'ai-inline-label';
+                    toneLabel.textContent = '語氣 / 情緒';
+                    const toneInput = document.createElement('input');
+                    toneInput.type = 'text';
+                    toneInput.placeholder = '例：開心、緊張';
+                    toneInput.value = dialog.tone || '';
+                    toneInput.addEventListener('input', () => {
+                        dialog.tone = toneInput.value;
+                    });
+                    toneInput.addEventListener('change', () => {
+                        dialog.tone = toneInput.value.trim();
+                        toneInput.value = dialog.tone;
+                        emitChange();
+                    });
+                    toneWrap.append(toneLabel, toneInput);
+
+                    const lineWrap = document.createElement('div');
+                    lineWrap.className = 'ai-inline grow';
+                    const lineLabel = document.createElement('div');
+                    lineLabel.className = 'ai-inline-label';
+                    lineLabel.textContent = '對話內容';
+                    const lineInput = document.createElement('textarea');
+                    lineInput.placeholder = '輸入 AI 要說的話或劇本描述…';
+                    lineInput.value = dialog.line || '';
+                    lineInput.addEventListener('input', () => {
+                        dialog.line = lineInput.value;
+                    });
+                    lineInput.addEventListener('change', () => {
+                        dialog.line = lineInput.value.trim();
+                        lineInput.value = dialog.line;
+                        emitChange();
+                    });
+                    lineWrap.append(lineLabel, lineInput);
+
+                    fields.append(triggerWrap, toneWrap, lineWrap);
+                    row.appendChild(fields);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'ai-dialogue-actions';
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn secondary';
+                    removeBtn.textContent = '移除';
+                    removeBtn.addEventListener('click', () => {
+                        value.dialogues.splice(idx, 1);
+                        renderDialogues();
+                        emitChange();
+                    });
+                    actions.appendChild(removeBtn);
+                    row.appendChild(actions);
+
+                    [triggerInput, toneInput, lineInput, removeBtn].forEach(el => {
+                        el.disabled = disabled;
+                    });
+
+                    dialogueList.appendChild(row);
+                });
+                addBtn.disabled = disabled;
+            }
+
+            addBtn.addEventListener('click', () => {
+                if (!value.enabled) return;
+                value.dialogues.push({ uid: uid(), trigger: '', tone: '', line: '' });
+                renderDialogues();
+                emitChange();
+            });
+
+            toggleCheckbox.addEventListener('change', () => {
+                value.enabled = toggleCheckbox.checked;
+                renderDialogues();
+                emitChange();
+            });
+
+            renderDialogues();
+
+            return {
+                element: container,
+                getValue,
+                setValue(newValue) {
+                    value = toInternal(newValue);
+                    toggleCheckbox.checked = !!value.enabled;
+                    renderDialogues();
+                }
+            };
+        }
         const iDropContainer = document.getElementById('iDropEditor');
         const createItemDropEditor = iDropContainer ? createDropEditor({ initialDrops: [], sourceOptions: getDropSourceOptions() }) : null;
         if (createItemDropEditor && iDropContainer) {
             iDropContainer.appendChild(createItemDropEditor.element);
+        }
+
+        const iAiFields = document.getElementById('iAiFields');
+        const iAiHost = document.getElementById('iAiEditorHost');
+        const createItemAiEditor = iAiHost ? createAiEditor() : null;
+        if (createItemAiEditor && iAiHost) {
+            iAiHost.appendChild(createItemAiEditor.element);
+        }
+
+        function updateCreateAiVisibility() {
+            if (!iAiFields) return;
+            const isAnimal = (iCategory?.value || '') === 'animal';
+            iAiFields.style.display = isAnimal ? '' : 'none';
+        }
+
+        if (iCategory) {
+            iCategory.addEventListener('change', () => {
+                updateCreateAiVisibility();
+            });
+            updateCreateAiVisibility();
         }
 
         addItem.onclick = async () => {
@@ -1688,6 +2075,13 @@
                 formData.append('drops', JSON.stringify(createItemDropEditor.getDrops()));
             } else {
                 formData.append('drops', '[]');
+            }
+            if (createItemAiEditor) {
+                if (categoryId === 'animal') {
+                    formData.append('ai', JSON.stringify(createItemAiEditor.getValue()));
+                } else {
+                    formData.append('ai', 'null');
+                }
             }
             if (iIcon.files && iIcon.files[0]) {
                 formData.append('image', iIcon.files[0]);
@@ -1722,6 +2116,10 @@
                 if (createItemDropEditor) {
                     createItemDropEditor.setDrops([]);
                 }
+                if (createItemAiEditor) {
+                    createItemAiEditor.setValue(null);
+                }
+                updateCreateAiVisibility();
                 populateTerrainChecklist(document.getElementById('iTerrainChecks'), []);
             } catch (err) {
                 console.error('Failed to create item', err);
@@ -1749,6 +2147,7 @@
         function buildItemCard(item, openItems, dropOptions) {
             const terrainsLookup = new Map((project.terrains || []).map(t => [t.id, t.name]));
             const terrainNames = (item.terrains || []).map(id => terrainsLookup.get(id) || id);
+            let aiEditor = null;
 
             const card = document.createElement('details');
             card.className = 'item-card';
@@ -1768,7 +2167,10 @@
             const dropMeta = document.createElement('span');
             dropMeta.className = 'item-drop-meta';
             dropMeta.textContent = `掉落：${formatDropSummary(item.drops, dropOptions)}`;
-            meta.append(idSpan, terrainSpan, dropMeta);
+            const aiMeta = document.createElement('span');
+            aiMeta.className = 'item-ai-meta';
+            aiMeta.style.display = 'none';
+            meta.append(idSpan, terrainSpan, dropMeta, aiMeta);
             summary.append(titleSpan, meta);
             card.appendChild(summary);
 
@@ -1788,6 +2190,17 @@
             const catSelect = createCategorySelect(item.categoryId);
             catRow.appendChild(catLabel); catRow.appendChild(catSelect);
 
+            const updateAiMeta = () => {
+                if (!aiMeta) return;
+                if (catSelect.value === 'animal') {
+                    const data = aiEditor ? aiEditor.getValue() : item.ai;
+                    aiMeta.style.display = '';
+                    aiMeta.textContent = `AI：${formatAiSummary(data)}`;
+                } else {
+                    aiMeta.style.display = 'none';
+                }
+            };
+
             const notesRow = document.createElement('div'); notesRow.className = 'row';
             const notesLabel = document.createElement('label'); notesLabel.textContent = '備註';
             const notesField = document.createElement('textarea'); notesField.value = item.notes || '';
@@ -1806,6 +2219,24 @@
             dropRow.appendChild(dropLabel);
             dropRow.appendChild(dropWrap);
 
+            const aiRow = document.createElement('div'); aiRow.className = 'row ai-row';
+            const aiLabel = document.createElement('label'); aiLabel.textContent = 'AI 設定';
+            const aiHost = document.createElement('div'); aiHost.className = 'ai-editor-host';
+            aiRow.appendChild(aiLabel); aiRow.appendChild(aiHost);
+            aiEditor = createAiEditor({
+                initialValue: item.ai,
+                onChange: updateAiMeta
+            });
+            aiHost.appendChild(aiEditor.element);
+
+            const handleCategoryToggle = () => {
+                const isAnimal = catSelect.value === 'animal';
+                aiRow.style.display = isAnimal ? '' : 'none';
+                updateAiMeta();
+            };
+            catSelect.addEventListener('change', handleCategoryToggle);
+            handleCategoryToggle();
+
             const terrainRow = document.createElement('div'); terrainRow.className = 'row';
             const terrainLabel = document.createElement('label'); terrainLabel.textContent = '適用地形';
             const terrainWrap = document.createElement('div'); terrainWrap.className = 'checklist';
@@ -1819,7 +2250,7 @@
             const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn danger'; deleteBtn.textContent = '刪除此物品';
             actionsRow.append(saveBtn, uploadBtn, removeImageBtn, deleteBtn);
 
-            form.append(nameRow, catRow, notesRow, dropRow, terrainRow, actionsRow);
+            form.append(nameRow, catRow, notesRow, dropRow, aiRow, terrainRow, actionsRow);
             body.appendChild(form);
 
             const imageSection = document.createElement('div');
@@ -1898,6 +2329,13 @@
                 formData.append('notes', notesField.value.trim());
                 formData.append('terrains', JSON.stringify(terrainsSelected));
                 formData.append('drops', JSON.stringify(dropEditor.getDrops()));
+                if (aiEditor) {
+                    if (catSelect.value === 'animal') {
+                        formData.append('ai', JSON.stringify(aiEditor.getValue()));
+                    } else {
+                        formData.append('ai', 'null');
+                    }
+                }
                 try {
                     const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
                     const data = await res.json();
