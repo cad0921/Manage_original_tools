@@ -39,7 +39,7 @@
   function render(item){ ensureDropsArray(item); UI.list.innerHTML=''; item.drops.forEach((_,i)=>UI.list.appendChild(createRow(item,i))); }
   function buildBlock(){
     const block=document.createElement('div'); block.className='field-group';
-    block.innerHTML=`<style>.drop-row{display:grid;grid-template-columns:120px 90px 90px 140px 1fr 80px;gap:8px;align-items:center;padding:6px 8px;margin:6px 0;border:1px dashed #ddd;border-radius:8px}.drop-row input,.drop-row select{width:100%}.drop-row .danger{color:#b00}</style><h4 style="margin:12px 0 6px;">掉落</h4><div id="item-drops-list"></div><button type="button" id="btn-add-drop">＋新增掉落規則</button><small>機率 0–1；來源可選 動畫生物/農作物/礦物/樹木，ID 自訂。</small>`;
+    block.innerHTML=`<style>.drop-row{display:grid;grid-template-columns:120px 90px 90px 140px 1fr 80px;gap:8px;align-items:center;padding:6px 8px;margin:6px 0;border:1px dashed #ddd;border-radius:8px}.drop-row input,.drop-row select{width:100%}.drop-row .danger{color:#b00}</style><h4 style="margin:12px 0 6px;">掉落</h4><div id="item-drops-list"></div><button type="button" id="btn-add-drop">＋新增掉落規則</button><small>機率 0–1；來源可選 動畫生物或其他分類（不含掉落物），ID 自訂。</small>`;
     block.querySelector('#btn-add-drop').addEventListener('click', ()=>{ if(!window.ItemDrops.currentItem) return; ensureDropsArray(window.ItemDrops.currentItem); window.ItemDrops.currentItem.drops.push({chance:1,min:1,max:1,sourceType:'entity',sourceId:''}); render(window.ItemDrops.currentItem); });
     UI.block=block; UI.list=block.querySelector('#item-drops-list'); return block;
   }

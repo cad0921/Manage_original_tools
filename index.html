@@ -941,6 +941,86 @@
     </template>
 
     <script>
+        // ----------------------------- Compatibility Helpers -----------------------------
+        (function () {
+            if (!Array.from) {
+                Array.from = function (arrayLike) {
+                    if (arrayLike == null) return [];
+                    return Array.prototype.slice.call(arrayLike);
+                };
+            }
+            if (!Array.prototype.find) {
+                Array.prototype.find = function (predicate, thisArg) {
+                    if (this == null) throw new TypeError('Array.prototype.find called on null or undefined');
+                    const arr = Object(this);
+                    const len = arr.length >>> 0;
+                    if (typeof predicate !== 'function') throw new TypeError('predicate must be a function');
+                    for (let i = 0; i < len; i++) {
+                        const value = arr[i];
+                        if (predicate.call(thisArg, value, i, arr)) return value;
+                    }
+                    return undefined;
+                };
+            }
+            if (!Array.prototype.findIndex) {
+                Array.prototype.findIndex = function (predicate, thisArg) {
+                    if (this == null) throw new TypeError('Array.prototype.findIndex called on null or undefined');
+                    const arr = Object(this);
+                    const len = arr.length >>> 0;
+                    if (typeof predicate !== 'function') throw new TypeError('predicate must be a function');
+                    for (let i = 0; i < len; i++) {
+                        if (predicate.call(thisArg, arr[i], i, arr)) return i;
+                    }
+                    return -1;
+                };
+            }
+            if (!Array.prototype.includes) {
+                Array.prototype.includes = function (searchElement, fromIndex) {
+                    if (this == null) throw new TypeError('Array.prototype.includes called on null or undefined');
+                    const arr = Object(this);
+                    const len = arr.length >>> 0;
+                    if (len === 0) return false;
+                    let start = Number(fromIndex) || 0;
+                    if (start < 0) start = Math.max(len + start, 0);
+                    const hasIsNaN = typeof Number.isNaN === 'function';
+                    for (let i = start; i < len; i++) {
+                        const value = arr[i];
+                        if (value === searchElement || (hasIsNaN && Number.isNaN(value) && Number.isNaN(searchElement))) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+            }
+            if (!Object.assign) {
+                Object.assign = function (target) {
+                    if (target == null) throw new TypeError('Cannot convert undefined or null to object');
+                    const to = Object(target);
+                    for (let i = 1; i < arguments.length; i++) {
+                        const source = arguments[i];
+                        if (source != null) {
+                            for (const key in source) {
+                                if (Object.prototype.hasOwnProperty.call(source, key)) {
+                                    to[key] = source[key];
+                                }
+                            }
+                        }
+                    }
+                    return to;
+                };
+            }
+            if (!Number.isFinite) {
+                Number.isFinite = function (value) {
+                    return typeof value === 'number' && isFinite(value);
+                };
+            }
+            if (!Number.isNaN) {
+                Number.isNaN = function (value) {
+                    return typeof value === 'number' && isNaN(value);
+                };
+            }
+        })();
+
         // ----------------------------- Data Types -----------------------------
         const LS_KEY = 'asset-cms-v1';
         const uid = () => Math.random().toString(36).slice(2, 9);
