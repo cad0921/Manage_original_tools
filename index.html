@@ -167,15 +167,18 @@
             color: var(--muted)
         }
 
-        .row.ai-row {
+        .row.ai-row,
+        .row.creature-row {
             align-items: flex-start;
         }
 
-        .ai-editor-host {
+        .ai-editor-host,
+        .creature-editor-host {
             flex: 1;
         }
 
-        .ai-editor {
+        .ai-editor,
+        .creature-editor {
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -265,13 +268,120 @@
             text-align: center;
         }
 
-        .ai-dialogue-actions {
+        .ai-dialogue-actions,
+        .creature-actions {
             display: flex;
             justify-content: flex-end;
         }
 
         .ai-editor .btn.secondary {
             align-self: flex-start;
+        }
+
+        .creature-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #1a2856;
+            border: 1px solid #2b3a7c;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .creature-section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .creature-section-title {
+            font-weight: 600;
+            color: #d7e0ff;
+        }
+
+        .creature-note {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .creature-animation-list,
+        .creature-skill-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .creature-animation-row,
+        .creature-skill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: flex-start;
+            border: 1px solid #1f2955;
+            background: #0c1434;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .creature-inline {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1 1 180px;
+            min-width: 160px;
+        }
+
+        .creature-inline.small {
+            flex: 0 0 120px;
+            min-width: 110px;
+        }
+
+        .creature-inline.tiny {
+            flex: 0 0 100px;
+            min-width: 90px;
+        }
+
+        .creature-inline.grow {
+            flex: 2 1 260px;
+            min-width: 220px;
+        }
+
+        .creature-inline .inline-label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .creature-inline textarea {
+            min-height: 70px;
+        }
+
+        .creature-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 20px;
+        }
+
+        .creature-empty {
+            font-size: 13px;
+            color: var(--muted);
+            border: 1px dashed #27306b;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .creature-inline input[type="number"] {
+            max-width: 120px;
+        }
+
+        .creature-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--muted);
         }
 
         input[type="text"],
@@ -1093,6 +1203,10 @@
                                     <label>互動 UI 圖片</label>
                                     <div class="ui-gallery-host" id="iUiGallery"></div>
                                 </div>
+                                <div class="row creature-row" id="iCreatureFields">
+                                    <label>生物設定</label>
+                                    <div class="creature-editor-host" id="iCreatureEditorHost"></div>
+                                </div>
                                 <div class="row ai-row" id="iAiFields">
                                     <label>AI 設定</label>
                                     <div class="ai-editor-host" id="iAiEditorHost"></div>
@@ -1848,6 +1962,75 @@
             return { screens: normalizeScreens(source.screens || []) };
         }
 
+        function sanitizeCreatureData(raw) {
+            const dispositions = new Set(['friendly', 'neutral', 'hostile']);
+            const base = {
+                disposition: 'neutral',
+                animations: [],
+                skills: [],
+                drops: []
+            };
+            if (!raw || typeof raw !== 'object') {
+                return { ...base };
+            }
+            const entry = { ...base };
+            const disposition = (raw.disposition ?? '').toString().trim().toLowerCase();
+            entry.disposition = dispositions.has(disposition) ? disposition : 'neutral';
+
+            const sanitizeAnimation = (anim) => {
+                if (!anim || typeof anim !== 'object') return null;
+                const id = (anim.id ?? '').toString().trim() || `anim_${uid()}`;
+                const animalId = (anim.animalId ?? anim.animal ?? '').toString().trim();
+                const clipName = (anim.clipName ?? anim.clip ?? '').toString().trim();
+                let chance = Number(anim.chance ?? anim.triggerChance ?? 0);
+                if (!Number.isFinite(chance)) chance = 0;
+                chance = Math.max(0, Math.min(1, chance));
+                const idle = parseBooleanLike(anim.idle ?? anim.isIdle ?? false);
+                const label = (anim.label ?? anim.name ?? '').toString().trim();
+                if (!animalId && !clipName) return null;
+                const entry = { id, animalId, clipName, chance, idle };
+                if (label) entry.label = label;
+                return entry;
+            };
+
+            const sanitizeSkill = (skill) => {
+                if (!skill || typeof skill !== 'object') return null;
+                const id = (skill.id ?? '').toString().trim() || `skill_${uid()}`;
+                const name = (skill.name ?? '').toString().trim();
+                const description = (skill.description ?? skill.desc ?? '').toString().trim();
+                const cooldown = (skill.cooldown ?? '').toString().trim();
+                if (!name && !description && !cooldown) return null;
+                const entry = { id };
+                if (name) entry.name = name;
+                if (description) entry.description = description;
+                if (cooldown) entry.cooldown = cooldown;
+                return entry;
+            };
+
+            const sanitizeDrop = (drop) => {
+                if (!drop || typeof drop !== 'object') return null;
+                let chance = Number(drop.chance ?? drop.triggerChance ?? 0);
+                if (!Number.isFinite(chance)) chance = 0;
+                chance = Math.max(0, Math.min(1, chance));
+                let min = parseInt(drop.min ?? 1, 10);
+                if (!Number.isFinite(min) || isNaN(min)) min = 1;
+                if (min < 0) min = 0;
+                let max = parseInt(drop.max ?? min, 10);
+                if (!Number.isFinite(max) || isNaN(max) || max < min) max = min;
+                const sourceType = (drop.sourceType ?? '').toString().trim().toLowerCase();
+                const sourceId = (drop.sourceId ?? '').toString().trim().replace(/[^a-zA-Z0-9_\-]/g, '');
+                const entry = { chance, min, max };
+                if (sourceType) entry.sourceType = sourceType;
+                if (sourceId) entry.sourceId = sourceId;
+                return entry;
+            };
+
+            entry.animations = Array.isArray(raw.animations) ? raw.animations.map(sanitizeAnimation).filter(Boolean) : [];
+            entry.skills = Array.isArray(raw.skills) ? raw.skills.map(sanitizeSkill).filter(Boolean) : [];
+            entry.drops = Array.isArray(raw.drops) ? raw.drops.map(sanitizeDrop).filter(Boolean) : [];
+            return entry;
+        }
+
         function formatAiSummary(ai) {
             const data = sanitizeAiData(ai);
             if (!data.enabled) return '未啟用';
@@ -1861,20 +2044,53 @@
             return parts.join('｜');
         }
 
+        function formatCreatureSummary(creature, dropOptions) {
+            const data = sanitizeCreatureData(creature);
+            if (!data) return '—';
+            const parts = [];
+            const dispositionLabel = creatureDispositionLabels[data.disposition] || '中立';
+            parts.push(`性格：${dispositionLabel}`);
+            if (data.animations.length > 0) {
+                const idleCount = data.animations.filter(anim => anim.idle).length;
+                let text = `動畫 ${data.animations.length} 個`;
+                if (idleCount > 0) {
+                    text += `（閒置 ${idleCount}）`;
+                }
+                parts.push(text);
+            }
+            if (data.skills.length > 0) {
+                parts.push(`技能 ${data.skills.length} 個`);
+            }
+            if (data.drops.length > 0) {
+                parts.push(`掉落 ${data.drops.length} 組`);
+            }
+            return parts.join('｜') || '—';
+        }
+
         function updateItemsState(items, categories) {
             if (Array.isArray(items)) {
                 project.items = items.map(it => {
                     if (!it || typeof it !== 'object') return it;
                     const copy = { ...it };
-                    if (String(copy.categoryId || '') === 'animal') {
-                        copy.ai = sanitizeAiData(copy.ai ?? copy.creature);
-                    } else if (copy.ai) {
-                        copy.ai = sanitizeAiData(copy.ai);
+                    const category = String(copy.categoryId || '');
+                    const rawCreature = copy.creature;
+                    if (category === 'animal') {
+                        const legacyCreatureAi = rawCreature && typeof rawCreature === 'object' && !('disposition' in rawCreature) && (rawCreature.enabled !== undefined || Array.isArray(rawCreature.dialogues));
+                        if (!copy.ai && legacyCreatureAi) {
+                            copy.ai = sanitizeAiData(rawCreature);
+                        } else {
+                            copy.ai = sanitizeAiData(copy.ai);
+                        }
+                        copy.creature = sanitizeCreatureData(rawCreature);
+                    } else {
+                        if (copy.ai) {
+                            copy.ai = sanitizeAiData(copy.ai);
+                        }
+                        if (copy.creature !== undefined) {
+                            delete copy.creature;
+                        }
                     }
                     copy.ui = sanitizeUiData(copy.ui);
-                    if (copy.creature !== undefined) {
-                        delete copy.creature;
-                    }
                     return copy;
                 });
             } else {
@@ -1919,6 +2135,12 @@
             mineral: '礦物',
             tree: '樹木',
             animal: '生物'
+        };
+
+        const creatureDispositionLabels = {
+            friendly: '友善',
+            neutral: '中立',
+            hostile: '敵對'
         };
 
         function getDropSourceOptions() {
@@ -2552,6 +2774,465 @@
                 }
             };
         }
+
+        function createCreatureEditor({ initialValue = null, dropOptions = [], animals = [], onChange } = {}) {
+            let state = sanitizeCreatureData(initialValue);
+            let animalOptions = [];
+            let dropSourceOptions = Array.isArray(dropOptions) ? dropOptions.map(opt => ({ ...opt })) : [];
+            let dropEditor = null;
+
+            const mapAnimals = (list) => {
+                if (!Array.isArray(list)) return [];
+                return list.map(an => {
+                    if (!an || typeof an !== 'object') return null;
+                    const id = (an.id ?? '').toString().trim();
+                    if (!id) return null;
+                    const name = (an.name ?? id).toString();
+                    const clips = Array.isArray(an.clips) ? an.clips.map(clip => {
+                        if (!clip) return null;
+                        if (typeof clip === 'string') return clip;
+                        const clipName = (clip.name ?? clip.id ?? '').toString().trim();
+                        return clipName || null;
+                    }).filter(Boolean) : [];
+                    return { id, name, clips };
+                }).filter(Boolean);
+            };
+
+            const setAnimalOptions = (list) => {
+                animalOptions = mapAnimals(list);
+            };
+            setAnimalOptions(animals);
+
+            const findAnimal = (id) => animalOptions.find(an => an.id === id);
+            const getClipsForAnimal = (id) => {
+                const found = findAnimal(id);
+                return Array.isArray(found?.clips) ? found.clips : [];
+            };
+            const hasAvailableAnimation = () => animalOptions.some(an => (an.clips || []).length > 0);
+
+            const container = document.createElement('div');
+            container.className = 'creature-editor';
+
+            const getValue = () => {
+                const snapshot = {
+                    ...state,
+                    drops: dropEditor ? dropEditor.getDrops() : (state.drops || [])
+                };
+                return sanitizeCreatureData(snapshot);
+            };
+
+            const notifyChange = () => {
+                if (typeof onChange === 'function') {
+                    onChange(getValue());
+                }
+            };
+
+            const basicSection = document.createElement('div');
+            basicSection.className = 'creature-section';
+            const basicTitle = document.createElement('div');
+            basicTitle.className = 'creature-section-title';
+            basicTitle.textContent = '基本';
+            basicSection.appendChild(basicTitle);
+            const dispositionField = document.createElement('div');
+            dispositionField.className = 'creature-inline small';
+            const dispositionLabel = document.createElement('div');
+            dispositionLabel.className = 'inline-label';
+            dispositionLabel.textContent = '友善度';
+            const dispositionSelect = document.createElement('select');
+            [
+                ['friendly', '友善'],
+                ['neutral', '中立'],
+                ['hostile', '敵對']
+            ].forEach(([value, label]) => {
+                const opt = document.createElement('option');
+                opt.value = value;
+                opt.textContent = label;
+                dispositionSelect.appendChild(opt);
+            });
+            dispositionSelect.value = state.disposition;
+            dispositionSelect.addEventListener('change', () => {
+                state.disposition = dispositionSelect.value;
+                notifyChange();
+            });
+            dispositionField.append(dispositionLabel, dispositionSelect);
+            basicSection.appendChild(dispositionField);
+
+            const animSection = document.createElement('div');
+            animSection.className = 'creature-section';
+            const animHead = document.createElement('div');
+            animHead.className = 'creature-section-head';
+            const animTitle = document.createElement('div');
+            animTitle.className = 'creature-section-title';
+            animTitle.textContent = '動畫';
+            const addAnimBtn = document.createElement('button');
+            addAnimBtn.type = 'button';
+            addAnimBtn.className = 'btn secondary';
+            addAnimBtn.textContent = '＋新增動畫';
+            animHead.append(animTitle, addAnimBtn);
+            animSection.appendChild(animHead);
+            const animNote = document.createElement('div');
+            animNote.className = 'creature-note';
+            animNote.textContent = '引用「動物」分頁的 clip，並設定觸發機率與是否為閒置動作。';
+            animSection.appendChild(animNote);
+            const animationList = document.createElement('div');
+            animationList.className = 'creature-animation-list';
+            animSection.appendChild(animationList);
+
+            const updateAddAnimationState = () => {
+                const available = hasAvailableAnimation();
+                addAnimBtn.disabled = !available;
+                addAnimBtn.title = available ? '' : '請先在動物分頁新增動畫 clip';
+            };
+
+            const renderAnimations = () => {
+                animationList.innerHTML = '';
+                if (state.animations.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'creature-empty';
+                    empty.textContent = hasAvailableAnimation() ? '尚未設定動畫，可使用上方按鈕新增。' : '尚未建立可用的動物動畫。';
+                    animationList.appendChild(empty);
+                }
+                state.animations.forEach((anim, idx) => {
+                    if (!anim.id) anim.id = `anim_${uid()}`;
+                    const row = document.createElement('div');
+                    row.className = 'creature-animation-row';
+
+                    const animalField = document.createElement('div');
+                    animalField.className = 'creature-inline';
+                    const animalLabel = document.createElement('div');
+                    animalLabel.className = 'inline-label';
+                    animalLabel.textContent = '動物';
+                    const animalSelect = document.createElement('select');
+                    const applyAnimalOptions = () => {
+                        const current = anim.animalId || '';
+                        animalSelect.innerHTML = '';
+                        let hasCurrent = false;
+                        if (current && !findAnimal(current)) {
+                            const opt = document.createElement('option');
+                            opt.value = current;
+                            opt.textContent = `缺少動物：${current}`;
+                            opt.dataset.searchSkip = '1';
+                            animalSelect.appendChild(opt);
+                            hasCurrent = true;
+                        }
+                        animalOptions.forEach(an => {
+                            const opt = document.createElement('option');
+                            opt.value = an.id;
+                            opt.textContent = an.name;
+                            animalSelect.appendChild(opt);
+                            if (an.id === current) hasCurrent = true;
+                        });
+                        if (!hasCurrent) {
+                            anim.animalId = animalOptions[0]?.id || current || '';
+                        }
+                        animalSelect.value = anim.animalId || '';
+                    };
+                    animalField.append(animalLabel, animalSelect);
+                    applyAnimalOptions();
+                    const animalSearch = enableSelectSearch(animalSelect, { placeholder: '選擇動物…', emptyText: '沒有符合的動物' });
+                    animalSearch?.refresh();
+
+                    const clipField = document.createElement('div');
+                    clipField.className = 'creature-inline';
+                    const clipLabel = document.createElement('div');
+                    clipLabel.className = 'inline-label';
+                    clipLabel.textContent = '動畫 clip';
+                    const clipSelect = document.createElement('select');
+                    const applyClipOptions = () => {
+                        const clips = getClipsForAnimal(anim.animalId);
+                        const current = anim.clipName || '';
+                        clipSelect.innerHTML = '';
+                        let hasCurrent = false;
+                        if (current && !clips.includes(current)) {
+                            const opt = document.createElement('option');
+                            opt.value = current;
+                            opt.textContent = `缺少動畫：${current}`;
+                            opt.dataset.searchSkip = '1';
+                            clipSelect.appendChild(opt);
+                            hasCurrent = true;
+                        }
+                        clips.forEach(name => {
+                            const opt = document.createElement('option');
+                            opt.value = name;
+                            opt.textContent = name;
+                            clipSelect.appendChild(opt);
+                            if (name === current) hasCurrent = true;
+                        });
+                        if (!hasCurrent) {
+                            anim.clipName = clips[0] || current || '';
+                        }
+                        clipSelect.value = anim.clipName || '';
+                    };
+                    clipField.append(clipLabel, clipSelect);
+                    applyClipOptions();
+                    const clipSearch = enableSelectSearch(clipSelect, { placeholder: '選擇動畫…', emptyText: '沒有符合的動畫' });
+                    clipSearch?.refresh();
+
+                    animalSelect.addEventListener('change', () => {
+                        anim.animalId = animalSelect.value;
+                        applyClipOptions();
+                        notifyChange();
+                    });
+                    clipSelect.addEventListener('change', () => {
+                        anim.clipName = clipSelect.value;
+                        notifyChange();
+                    });
+
+                    const chanceField = document.createElement('div');
+                    chanceField.className = 'creature-inline small';
+                    const chanceLabel = document.createElement('div');
+                    chanceLabel.className = 'inline-label';
+                    chanceLabel.textContent = '觸發機率 %';
+                    const chanceInput = document.createElement('input');
+                    chanceInput.type = 'number';
+                    chanceInput.min = '0';
+                    chanceInput.max = '100';
+                    chanceInput.step = '1';
+                    const chanceValue = Math.round(Math.max(0, Math.min(1, Number(anim.chance ?? 0))) * 100);
+                    chanceInput.value = String(chanceValue);
+                    chanceInput.addEventListener('change', () => {
+                        let value = Number(chanceInput.value);
+                        if (!Number.isFinite(value)) value = 0;
+                        value = Math.max(0, Math.min(100, value));
+                        chanceInput.value = String(value);
+                        anim.chance = value / 100;
+                        notifyChange();
+                    });
+                    chanceField.append(chanceLabel, chanceInput);
+
+                    const idleField = document.createElement('div');
+                    idleField.className = 'creature-inline tiny';
+                    const idleLabel = document.createElement('div');
+                    idleLabel.className = 'inline-label';
+                    idleLabel.textContent = '閒置';
+                    const idleToggle = document.createElement('label');
+                    idleToggle.className = 'creature-toggle';
+                    const idleCheckbox = document.createElement('input');
+                    idleCheckbox.type = 'checkbox';
+                    idleCheckbox.checked = !!anim.idle;
+                    idleCheckbox.addEventListener('change', () => {
+                        anim.idle = idleCheckbox.checked;
+                        notifyChange();
+                    });
+                    idleToggle.append(idleCheckbox, document.createTextNode('閒置動畫'));
+                    idleField.append(idleLabel, idleToggle);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'creature-actions';
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn secondary';
+                    removeBtn.textContent = '移除';
+                    removeBtn.addEventListener('click', () => {
+                        state.animations.splice(idx, 1);
+                        renderAnimations();
+                        notifyChange();
+                    });
+                    actions.appendChild(removeBtn);
+
+                    row.append(animalField, clipField, chanceField, idleField, actions);
+                    animationList.appendChild(row);
+                });
+            };
+
+            addAnimBtn.addEventListener('click', () => {
+                if (!hasAvailableAnimation()) {
+                    alert('請先在動物分頁建立至少一個帶有動畫 clip 的生物。');
+                    return;
+                }
+                const preferred = animalOptions.find(an => (an.clips || []).length > 0) || animalOptions[0];
+                const clipName = preferred?.clips?.[0] || '';
+                state.animations.push({
+                    id: `anim_${uid()}`,
+                    animalId: preferred?.id || '',
+                    clipName,
+                    chance: 1,
+                    idle: false
+                });
+                renderAnimations();
+                notifyChange();
+            });
+
+            const skillSection = document.createElement('div');
+            skillSection.className = 'creature-section';
+            const skillHead = document.createElement('div');
+            skillHead.className = 'creature-section-head';
+            const skillTitle = document.createElement('div');
+            skillTitle.className = 'creature-section-title';
+            skillTitle.textContent = '技能';
+            const addSkillBtn = document.createElement('button');
+            addSkillBtn.type = 'button';
+            addSkillBtn.className = 'btn secondary';
+            addSkillBtn.textContent = '＋新增技能';
+            skillHead.append(skillTitle, addSkillBtn);
+            skillSection.appendChild(skillHead);
+            const skillNote = document.createElement('div');
+            skillNote.className = 'creature-note';
+            skillNote.textContent = '記錄生物可使用的技能與描述，必要時補充冷卻或備註。';
+            skillSection.appendChild(skillNote);
+            const skillList = document.createElement('div');
+            skillList.className = 'creature-skill-list';
+            skillSection.appendChild(skillList);
+
+            const renderSkills = () => {
+                skillList.innerHTML = '';
+                if (state.skills.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'creature-empty';
+                    empty.textContent = '尚未新增技能。';
+                    skillList.appendChild(empty);
+                }
+                state.skills.forEach((skill, idx) => {
+                    if (!skill.id) skill.id = `skill_${uid()}`;
+                    const row = document.createElement('div');
+                    row.className = 'creature-skill-row';
+
+                    const nameField = document.createElement('div');
+                    nameField.className = 'creature-inline';
+                    const nameLabel = document.createElement('div');
+                    nameLabel.className = 'inline-label';
+                    nameLabel.textContent = '技能名稱';
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.placeholder = '例：火球 / 治療波';
+                    nameInput.value = skill.name || '';
+                    nameInput.addEventListener('input', () => {
+                        skill.name = nameInput.value;
+                    });
+                    nameInput.addEventListener('change', () => {
+                        skill.name = nameInput.value.trim();
+                        nameInput.value = skill.name;
+                        notifyChange();
+                    });
+                    nameField.append(nameLabel, nameInput);
+
+                    const descField = document.createElement('div');
+                    descField.className = 'creature-inline grow';
+                    const descLabel = document.createElement('div');
+                    descLabel.className = 'inline-label';
+                    descLabel.textContent = '描述';
+                    const descInput = document.createElement('textarea');
+                    descInput.placeholder = '輸入技能效果、範圍或其他說明…';
+                    descInput.value = skill.description || '';
+                    descInput.addEventListener('input', () => {
+                        skill.description = descInput.value;
+                    });
+                    descInput.addEventListener('change', () => {
+                        skill.description = descInput.value.trim();
+                        descInput.value = skill.description;
+                        notifyChange();
+                    });
+                    descField.append(descLabel, descInput);
+
+                    const cdField = document.createElement('div');
+                    cdField.className = 'creature-inline small';
+                    const cdLabel = document.createElement('div');
+                    cdLabel.className = 'inline-label';
+                    cdLabel.textContent = '冷卻 / 備註';
+                    const cdInput = document.createElement('input');
+                    cdInput.type = 'text';
+                    cdInput.placeholder = '例：CD 8 秒';
+                    cdInput.value = skill.cooldown || '';
+                    cdInput.addEventListener('input', () => {
+                        skill.cooldown = cdInput.value;
+                    });
+                    cdInput.addEventListener('change', () => {
+                        skill.cooldown = cdInput.value.trim();
+                        cdInput.value = skill.cooldown;
+                        notifyChange();
+                    });
+                    cdField.append(cdLabel, cdInput);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'creature-actions';
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn secondary';
+                    removeBtn.textContent = '移除';
+                    removeBtn.addEventListener('click', () => {
+                        state.skills.splice(idx, 1);
+                        renderSkills();
+                        notifyChange();
+                    });
+                    actions.appendChild(removeBtn);
+
+                    row.append(nameField, descField, cdField, actions);
+                    skillList.appendChild(row);
+                });
+            };
+
+            addSkillBtn.addEventListener('click', () => {
+                state.skills.push({ id: `skill_${uid()}`, name: '', description: '', cooldown: '' });
+                renderSkills();
+                notifyChange();
+            });
+
+            const dropSection = document.createElement('div');
+            dropSection.className = 'creature-section';
+            const dropHead = document.createElement('div');
+            dropHead.className = 'creature-section-head';
+            const dropTitle = document.createElement('div');
+            dropTitle.className = 'creature-section-title';
+            dropTitle.textContent = '掉落物';
+            dropHead.appendChild(dropTitle);
+            dropSection.appendChild(dropHead);
+            const dropNote = document.createElement('div');
+            dropNote.className = 'creature-note';
+            dropNote.textContent = '設定此生物被擊敗後的專屬掉落。';
+            dropSection.appendChild(dropNote);
+            const dropHost = document.createElement('div');
+            dropEditor = createDropEditor({
+                initialDrops: state.drops,
+                sourceOptions: dropSourceOptions,
+                addButtonLabel: '＋新增掉落',
+                noteText: '機率 0–1；可引用分類或特定實體。',
+                onChange: drops => {
+                    state.drops = drops;
+                    notifyChange();
+                }
+            });
+            dropHost.appendChild(dropEditor.element);
+            dropSection.appendChild(dropHost);
+
+            container.append(basicSection, animSection, skillSection, dropSection);
+
+            const setValue = (input) => {
+                state = sanitizeCreatureData(input);
+                dispositionSelect.value = state.disposition;
+                renderAnimations();
+                renderSkills();
+                updateAddAnimationState();
+                dropEditor?.setDrops(state.drops);
+            };
+
+            setValue(initialValue);
+            updateAddAnimationState();
+
+            return {
+                element: container,
+                getValue,
+                setValue(value) {
+                    setValue(value);
+                    notifyChange();
+                },
+                setAnimals(newAnimals) {
+                    const before = JSON.stringify(getValue());
+                    setAnimalOptions(newAnimals);
+                    renderAnimations();
+                    updateAddAnimationState();
+                    const after = JSON.stringify(getValue());
+                    if (before !== after) notifyChange();
+                },
+                setDropOptions(newOptions) {
+                    dropSourceOptions = Array.isArray(newOptions) ? newOptions.map(opt => ({ ...opt })) : [];
+                    dropEditor?.setSourceOptions(dropSourceOptions);
+                },
+                reset() {
+                    setValue(null);
+                    notifyChange();
+                }
+            };
+        }
         const iDropContainer = document.getElementById('iDropEditor');
         const createItemDropEditor = iDropContainer ? createDropEditor({ initialDrops: [], sourceOptions: getDropSourceOptions() }) : null;
         if (createItemDropEditor && iDropContainer) {
@@ -2564,6 +3245,13 @@
         if (createItemUiGallery && iUiHost) {
             iUiHost.innerHTML = '';
             iUiHost.appendChild(createItemUiGallery.element);
+        }
+
+        const iCreatureFields = document.getElementById('iCreatureFields');
+        const iCreatureHost = document.getElementById('iCreatureEditorHost');
+        const createItemCreatureEditor = iCreatureHost ? createCreatureEditor({ dropOptions: getDropSourceOptions(), animals: project.animals }) : null;
+        if (createItemCreatureEditor && iCreatureHost) {
+            iCreatureHost.appendChild(createItemCreatureEditor.element);
         }
 
         const iAiFields = document.getElementById('iAiFields');
@@ -2579,6 +3267,12 @@
             iAiFields.style.display = isAnimal ? '' : 'none';
         }
 
+        function updateCreateCreatureVisibility() {
+            if (!iCreatureFields) return;
+            const isAnimal = (iCategory?.value || '') === 'animal';
+            iCreatureFields.style.display = isAnimal ? '' : 'none';
+        }
+
         function updateCreateUiVisibility() {
             if (!iUiFields) return;
             const isInteractive = (iCategory?.value || '') === 'interactive';
@@ -2588,9 +3282,11 @@
         if (iCategory) {
             iCategory.addEventListener('change', () => {
                 updateCreateAiVisibility();
+                updateCreateCreatureVisibility();
                 updateCreateUiVisibility();
             });
             updateCreateAiVisibility();
+            updateCreateCreatureVisibility();
             updateCreateUiVisibility();
         }
 
@@ -2621,6 +3317,13 @@
                     formData.append('ai', JSON.stringify(createItemAiEditor.getValue()));
                 } else {
                     formData.append('ai', 'null');
+                }
+            }
+            if (createItemCreatureEditor) {
+                if (categoryId === 'animal') {
+                    formData.append('creature', JSON.stringify(createItemCreatureEditor.getValue()));
+                } else {
+                    formData.append('creature', 'null');
                 }
             }
             if (createItemUiGallery) {
@@ -2676,10 +3379,14 @@
                 if (createItemAiEditor) {
                     createItemAiEditor.setValue(null);
                 }
+                if (createItemCreatureEditor) {
+                    createItemCreatureEditor.reset();
+                }
                 if (createItemUiGallery) {
                     createItemUiGallery.reset();
                 }
                 updateCreateAiVisibility();
+                updateCreateCreatureVisibility();
                 updateCreateUiVisibility();
                 populateTerrainChecklist(document.getElementById('iTerrainChecks'), []);
             } catch (err) {
@@ -2709,6 +3416,7 @@
             const terrainsLookup = new Map((project.terrains || []).map(t => [t.id, t.name]));
             const terrainNames = (item.terrains || []).map(id => terrainsLookup.get(id) || id);
             let aiEditor = null;
+            let creatureEditor = null;
             let uiGallery = null;
 
             const card = document.createElement('details');
@@ -2732,10 +3440,13 @@
             const uiMeta = document.createElement('span');
             uiMeta.className = 'item-ui-meta';
             uiMeta.style.display = 'none';
+            const creatureMeta = document.createElement('span');
+            creatureMeta.className = 'item-creature-meta';
+            creatureMeta.style.display = 'none';
             const aiMeta = document.createElement('span');
             aiMeta.className = 'item-ai-meta';
             aiMeta.style.display = 'none';
-            meta.append(idSpan, terrainSpan, dropMeta, uiMeta, aiMeta);
+            meta.append(idSpan, terrainSpan, dropMeta, uiMeta, creatureMeta, aiMeta);
             summary.append(titleSpan, meta);
             card.appendChild(summary);
 
@@ -2765,6 +3476,17 @@
                     uiMeta.textContent = `UI 圖片：${count > 0 ? `${count} 張` : '—'}`;
                 } else {
                     uiMeta.style.display = 'none';
+                }
+            };
+
+            const updateCreatureMeta = () => {
+                if (!creatureMeta) return;
+                if (catSelect.value === 'animal') {
+                    const data = creatureEditor ? creatureEditor.getValue() : item.creature;
+                    creatureMeta.style.display = '';
+                    creatureMeta.textContent = `生物：${formatCreatureSummary(data, dropOptions)}`;
+                } else {
+                    creatureMeta.style.display = 'none';
                 }
             };
 
@@ -2810,6 +3532,21 @@
             uiHost.appendChild(uiGallery.element);
             uiRow.append(uiLabel, uiHost);
 
+            const creatureRow = document.createElement('div');
+            creatureRow.className = 'row creature-row';
+            const creatureLabel = document.createElement('label');
+            creatureLabel.textContent = '生物設定';
+            const creatureHost = document.createElement('div');
+            creatureHost.className = 'creature-editor-host';
+            creatureRow.append(creatureLabel, creatureHost);
+            creatureEditor = createCreatureEditor({
+                initialValue: item.creature,
+                dropOptions,
+                animals: project.animals,
+                onChange: updateCreatureMeta
+            });
+            creatureHost.appendChild(creatureEditor.element);
+
             const aiRow = document.createElement('div'); aiRow.className = 'row ai-row';
             const aiLabel = document.createElement('label'); aiLabel.textContent = 'AI 設定';
             const aiHost = document.createElement('div'); aiHost.className = 'ai-editor-host';
@@ -2824,8 +3561,10 @@
                 const isAnimal = catSelect.value === 'animal';
                 const isInteractive = catSelect.value === 'interactive';
                 aiRow.style.display = isAnimal ? '' : 'none';
+                creatureRow.style.display = isAnimal ? '' : 'none';
                 uiRow.style.display = isInteractive ? '' : 'none';
                 updateAiMeta();
+                updateCreatureMeta();
                 applyUiMeta(isInteractive ? (uiGallery?.getDisplayCount?.() ?? 0) : 0);
             };
             catSelect.addEventListener('change', handleCategoryToggle);
@@ -2844,7 +3583,7 @@
             const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn danger'; deleteBtn.textContent = '刪除此物品';
             actionsRow.append(saveBtn, uploadBtn, removeImageBtn, deleteBtn);
 
-            form.append(nameRow, catRow, notesRow, dropRow, uiRow, aiRow, terrainRow, actionsRow);
+            form.append(nameRow, catRow, notesRow, dropRow, uiRow, creatureRow, aiRow, terrainRow, actionsRow);
             body.appendChild(form);
 
             const imageSection = document.createElement('div');
@@ -2942,6 +3681,13 @@
                         formData.append('ai', JSON.stringify(aiEditor.getValue()));
                     } else {
                         formData.append('ai', 'null');
+                    }
+                }
+                if (creatureEditor) {
+                    if (catSelect.value === 'animal') {
+                        formData.append('creature', JSON.stringify(creatureEditor.getValue()));
+                    } else {
+                        formData.append('creature', 'null');
                     }
                 }
                 try {
@@ -3045,6 +3791,10 @@
             renderItemCategoryOptions();
             const dropOptions = getDropSourceOptions();
             if (createItemDropEditor) createItemDropEditor.setSourceOptions(dropOptions);
+            if (createItemCreatureEditor) {
+                createItemCreatureEditor.setDropOptions(dropOptions);
+                createItemCreatureEditor.setAnimals(project.animals);
+            }
             const openGroups = new Set(Array.from(itemList.querySelectorAll('.item-group[open]')).map(el => el.dataset.catId));
             const openItems = new Set(Array.from(itemList.querySelectorAll('.item-card[open]')).map(el => el.dataset.itemId));
 
