@@ -101,6 +101,80 @@ function parse_drops_from_request($key='drops'){
   }
   return $out;
 }
+
+function default_creature_payload(){
+  return ['disposition'=>'neutral','animations'=>[],'skills'=>[]];
+}
+
+function parse_bool_like($value){
+  if (is_bool($value)) return $value;
+  if (is_string($value)) {
+    $normalized = strtolower(trim($value));
+    if ($normalized === '' || $normalized === '0' || $normalized === 'false' || $normalized === 'no' || $normalized === 'off') return false;
+    if (in_array($normalized, ['1','true','yes','y','on'], true)) return true;
+  }
+  if (is_numeric($value)) {
+    return ((int)$value) !== 0;
+  }
+  return false;
+}
+
+function sanitize_creature_array($raw){
+  $allowed = ['friendly','neutral','hostile'];
+  if (!is_array($raw)) $raw = [];
+  $disposition = '';
+  if (isset($raw['disposition'])) {
+    $disposition = strtolower(trim((string)$raw['disposition']));
+  }
+  if (!in_array($disposition, $allowed, true)) $disposition = 'neutral';
+
+  $animations = [];
+  if (isset($raw['animations']) && is_array($raw['animations'])) {
+    foreach ($raw['animations'] as $anim) {
+      if (!is_array($anim)) continue;
+      $animalId = trim((string)($anim['animalId'] ?? ''));
+      $clipName = trim((string)($anim['clipName'] ?? ''));
+      if ($animalId === '' && $clipName === '') continue;
+      $chanceRaw = $anim['triggerChance'] ?? 1.0;
+      $chance = is_numeric($chanceRaw) ? (float)$chanceRaw : 1.0;
+      if ($chance < 0) $chance = 0.0;
+      if ($chance > 1) $chance = 1.0;
+      $isIdle = parse_bool_like($anim['isIdle'] ?? false);
+      $animations[] = [
+        'animalId' => $animalId,
+        'clipName' => $clipName,
+        'triggerChance' => $chance,
+        'isIdle' => $isIdle
+      ];
+    }
+  }
+
+  $skills = [];
+  if (isset($raw['skills']) && is_array($raw['skills'])) {
+    foreach ($raw['skills'] as $skill) {
+      if (!is_array($skill)) continue;
+      $name = trim((string)($skill['name'] ?? ''));
+      $description = trim((string)($skill['description'] ?? ''));
+      if ($name === '' && $description === '') continue;
+      $skills[] = ['name'=>$name,'description'=>$description];
+    }
+  }
+
+  return ['disposition'=>$disposition,'animations'=>$animations,'skills'=>$skills];
+}
+
+function parse_creature_from_request($key='creature'){
+  if (!isset($_POST[$key])) return null;
+  $raw = $_POST[$key];
+  if (is_array($raw)) {
+    return sanitize_creature_array($raw);
+  }
+  $rawStr = trim((string)$raw);
+  if ($rawStr === '' || strtolower($rawStr) === 'null') return null;
+  $decoded = json_decode($rawStr, true);
+  if (!is_array($decoded)) return null;
+  return sanitize_creature_array($decoded);
+}
 function seed_categories(){
   return [
     ["id"=>"material","name"=>"素材","label"=>"素材"],
@@ -137,6 +211,16 @@ function load_items_json($jsonPath){
     if (!isset($c["label"]) || $c["label"]==="") $c["label"]=$c["name"] ?? ($c["id"] ?? "");
   } unset($c);
 
+  if (isset($data['items']) && is_array($data['items'])) {
+    foreach ($data['items'] as &$it) {
+      if (!is_array($it)) continue;
+      if (isset($it['categoryId']) && (string)$it['categoryId'] === 'animal') {
+        $it['creature'] = sanitize_creature_array($it['creature'] ?? []);
+      }
+    }
+    unset($it);
+  }
+
   return $data;
 }
 
@@ -159,6 +243,7 @@ if ($action === 'create') {
   $categoryId = trim($_POST['categoryId'] ?? '');
   $notes = trim($_POST['notes'] ?? '');
   $terrains = parse_array_field('terrains');
+  $creatureData = parse_creature_from_request('creature');
 
   if ($name === '') respond(400, ["status"=>"error","handledAction"=>"create","message"=>"name is required"]);
   if ($categoryId === '') $categoryId = 'material';
@@ -194,6 +279,11 @@ if ($action === 'create') {
     'createdAt'=>gmdate('c'),'updatedAt'=>gmdate('c'),
     'drops'=>parse_drops_from_request('drops')
   ];
+  if ($categoryId === 'animal') {
+    $item['creature'] = $creatureData ?? default_creature_payload();
+  } elseif ($creatureData !== null) {
+    $item['creature'] = $creatureData;
+  }
   $items[] = $item; $data['items'] = $items; try_save_items($jsonPath,$data);
 
   respond(200, ["status"=>"ok","handledAction"=>"create","item"=>$item,"items"=>$data["items"],"categories"=>$data["categories"]]);
@@ -211,6 +301,28 @@ if ($action === 'update') {
   if(isset($_POST['notes'])){ $items[$idx]['notes']=trim((string)$_POST['notes']); $changed=true; }
   if(isset($_POST['terrains'])){ $items[$idx]['terrains']=parse_array_field('terrains'); $changed=true; }
   if(isset($_POST['drops'])){ $items[$idx]['drops']=parse_drops_from_request('drops'); $changed=true; }
+
+  $finalCategoryId = trim((string)($items[$idx]['categoryId'] ?? ''));
+
+  if(isset($_POST['creature'])){
+    $creature = parse_creature_from_request('creature');
+    if ($finalCategoryId === 'animal') {
+      $items[$idx]['creature'] = $creature ?? default_creature_payload();
+    } else {
+      unset($items[$idx]['creature']);
+    }
+    $changed = true;
+  } else {
+    if ($finalCategoryId === 'animal') {
+      if (!isset($items[$idx]['creature']) || !is_array($items[$idx]['creature'])) {
+        $items[$idx]['creature'] = default_creature_payload();
+        $changed = true;
+      }
+    } elseif (isset($items[$idx]['creature'])) {
+      unset($items[$idx]['creature']);
+      $changed = true;
+    }
+  }
 
   // 圖片處理
   $dir = $itemsDir.'/'.$id;

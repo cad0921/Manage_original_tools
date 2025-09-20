@@ -139,6 +139,120 @@
             color: var(--muted)
         }
 
+        .row.creature-row {
+            align-items: flex-start;
+        }
+
+        .creature-editor-host {
+            flex: 1;
+        }
+
+        .creature-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .creature-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #0f1534;
+            border: 1px solid #1d2550;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .creature-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .creature-group-title {
+            font-weight: 600;
+            color: #d7e0ff;
+        }
+
+        .creature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .creature-animation-row,
+        .creature-skill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #1f2955;
+            background: #0c1434;
+        }
+
+        .creature-inline {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1 1 160px;
+            min-width: 140px;
+        }
+
+        .creature-inline.small {
+            flex: 0 0 120px;
+        }
+
+        .creature-inline.checkbox {
+            flex: 0 0 auto;
+            flex-direction: row;
+            align-items: center;
+            gap: 6px;
+            color: var(--muted);
+        }
+
+        .creature-inline.grow {
+            flex: 2 1 260px;
+            min-width: 200px;
+        }
+
+        .creature-inline-label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .creature-note {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .creature-empty {
+            font-size: 13px;
+            color: var(--muted);
+            border: 1px dashed #27306b;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .creature-animation-row .btn,
+        .creature-skill-row .btn {
+            flex: 0 0 auto;
+        }
+
+        .creature-editor .btn.secondary {
+            align-self: flex-start;
+        }
+
+        .creature-skill-row textarea {
+            min-height: 60px;
+        }
+
         input[type="text"],
         input[type="number"],
         textarea,
@@ -811,6 +925,10 @@
                         <div class="row item-drop-row"><label>掉落設定</label>
                             <div id="iDropEditor" class="drop-editor-wrap"></div>
                         </div>
+                        <div class="row creature-row" id="iCreatureFields">
+                            <label>生物設定</label>
+                            <div class="creature-editor-host" id="iCreatureEditorHost"></div>
+                        </div>
                         <div class="row"><button id="addItem" class="btn">新增物品</button></div>
                     </div>
                     <div>
@@ -1403,8 +1521,84 @@
             }
         }
 
+        const creatureDispositionLabels = {
+            friendly: '友善',
+            neutral: '中立',
+            hostile: '敵對'
+        };
+
+        function parseBooleanLike(value) {
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true;
+                if (['false', '0', 'no', 'n', 'off', ''].includes(normalized)) return false;
+            }
+            if (typeof value === 'number') {
+                return value !== 0;
+            }
+            return false;
+        }
+
+        function sanitizeCreatureData(raw) {
+            const allowed = Object.keys(creatureDispositionLabels);
+            const source = raw && typeof raw === 'object' ? raw : {};
+            let disposition = '';
+            if (typeof source.disposition === 'string') {
+                disposition = source.disposition.trim().toLowerCase();
+            }
+            if (!allowed.includes(disposition)) disposition = 'neutral';
+
+            const animations = Array.isArray(source.animations) ? source.animations.map(anim => {
+                if (!anim || typeof anim !== 'object') return null;
+                const animalId = (anim.animalId ?? '').toString().trim();
+                const clipName = (anim.clipName ?? '').toString().trim();
+                let triggerChance = Number(anim.triggerChance);
+                if (!Number.isFinite(triggerChance)) triggerChance = 1;
+                triggerChance = Math.max(0, Math.min(1, triggerChance));
+                const isIdle = parseBooleanLike(anim.isIdle);
+                if (!animalId && !clipName) return null;
+                return { animalId, clipName, triggerChance, isIdle };
+            }).filter(Boolean) : [];
+
+            const skills = Array.isArray(source.skills) ? source.skills.map(skill => {
+                if (!skill || typeof skill !== 'object') return null;
+                const name = (skill.name ?? '').toString().trim();
+                const description = (skill.description ?? '').toString().trim();
+                if (!name && !description) return null;
+                return { name, description };
+            }).filter(Boolean) : [];
+
+            return { disposition, animations, skills };
+        }
+
+        function formatCreatureSummary(creature) {
+            if (!creature || typeof creature !== 'object') return '—';
+            const data = sanitizeCreatureData(creature);
+            const parts = [];
+            const dispositionLabel = creatureDispositionLabels[data.disposition] || creatureDispositionLabels.neutral;
+            if (dispositionLabel) parts.push(`態度：${dispositionLabel}`);
+            parts.push(`動畫 ${data.animations.length} 個`);
+            parts.push(`技能 ${data.skills.length} 個`);
+            const idleAnim = data.animations.find(anim => anim.isIdle);
+            if (idleAnim) {
+                const idleName = idleAnim.clipName || idleAnim.animalId || '';
+                if (idleName) parts.push(`閒置：${idleName}`);
+            }
+            return parts.filter(Boolean).join('｜') || '—';
+        }
+
         function updateItemsState(items, categories) {
-            project.items = Array.isArray(items) ? items : [];
+            if (Array.isArray(items)) {
+                project.items = items.map(it => {
+                    if (it && typeof it === 'object' && String(it.categoryId || '') === 'animal') {
+                        return { ...it, creature: sanitizeCreatureData(it.creature) };
+                    }
+                    return it;
+                });
+            } else {
+                project.items = [];
+            }
             ensureItemCategories(categories);
             saveProject();
         }
@@ -1425,6 +1619,7 @@
             } else if (iCategory.options.length > 0 && !iCategory.value) {
                 iCategory.value = iCategory.options[0].value;
             }
+            updateCreateCreatureVisibility();
         }
 
         const dropLabelFallback = {
@@ -1661,10 +1856,452 @@
             };
         }
 
+        function createCreatureEditor({ initialValue = null, getAnimals = () => [], onChange } = {}) {
+            let animalsProvider = typeof getAnimals === 'function' ? getAnimals : () => [];
+            const toInternal = (input) => {
+                const sanitized = sanitizeCreatureData(input || {});
+                return {
+                    disposition: sanitized.disposition,
+                    animations: sanitized.animations.map(anim => ({ ...anim, uid: uid() })),
+                    skills: sanitized.skills.map(skill => ({ ...skill, uid: uid() }))
+                };
+            };
+            let value = toInternal(initialValue);
+
+            function getValue() {
+                const allowed = Object.keys(creatureDispositionLabels);
+                const disposition = allowed.includes(value.disposition) ? value.disposition : 'neutral';
+                const animations = value.animations.map(anim => {
+                    const animalId = (anim.animalId ?? '').toString().trim();
+                    const clipName = (anim.clipName ?? '').toString().trim();
+                    let triggerChance = Number(anim.triggerChance);
+                    if (!Number.isFinite(triggerChance)) triggerChance = 1;
+                    triggerChance = Math.max(0, Math.min(1, triggerChance));
+                    const isIdle = parseBooleanLike(anim.isIdle);
+                    return { animalId, clipName, triggerChance, isIdle };
+                }).filter(anim => anim.animalId || anim.clipName);
+                const skills = value.skills.map(skill => {
+                    const name = (skill.name ?? '').toString().trim();
+                    const description = (skill.description ?? '').toString().trim();
+                    return { name, description };
+                }).filter(skill => skill.name || skill.description);
+                return { disposition, animations, skills };
+            }
+
+            const emitChange = () => {
+                if (typeof onChange === 'function') {
+                    onChange(getValue());
+                }
+            };
+
+            const container = document.createElement('div');
+            container.className = 'creature-editor';
+
+            const dispositionGroup = document.createElement('div');
+            dispositionGroup.className = 'creature-group';
+            const dispositionTitle = document.createElement('div');
+            dispositionTitle.className = 'creature-group-title';
+            dispositionTitle.textContent = '陣營 / 態度';
+            const dispositionSelect = document.createElement('select');
+            Object.entries(creatureDispositionLabels).forEach(([key, label]) => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = label;
+                dispositionSelect.appendChild(opt);
+            });
+            dispositionSelect.value = value.disposition;
+            dispositionSelect.addEventListener('change', () => {
+                value.disposition = dispositionSelect.value;
+                emitChange();
+            });
+            const dispositionNote = document.createElement('div');
+            dispositionNote.className = 'creature-note';
+            dispositionNote.textContent = '決定生物對玩家的態度：友善、中立或敵對。';
+            dispositionGroup.append(dispositionTitle, dispositionSelect, dispositionNote);
+            container.appendChild(dispositionGroup);
+
+            const animationsGroup = document.createElement('div');
+            animationsGroup.className = 'creature-group';
+            const animationsHeader = document.createElement('div');
+            animationsHeader.className = 'creature-group-header';
+            const animationsTitle = document.createElement('span');
+            animationsTitle.className = 'creature-group-title';
+            animationsTitle.textContent = '動畫';
+            const animAddBtn = document.createElement('button');
+            animAddBtn.type = 'button';
+            animAddBtn.className = 'btn secondary';
+            animAddBtn.textContent = '＋新增動畫';
+            animationsHeader.append(animationsTitle, animAddBtn);
+            const animList = document.createElement('div');
+            animList.className = 'creature-list';
+            const animationsNote = document.createElement('div');
+            animationsNote.className = 'creature-note';
+            animationsNote.textContent = '選擇動物 clip 並設定觸發機率（0–1）與閒置動畫。';
+            animationsGroup.append(animationsHeader, animList, animationsNote);
+            container.appendChild(animationsGroup);
+
+            const skillsGroup = document.createElement('div');
+            skillsGroup.className = 'creature-group';
+            const skillsHeader = document.createElement('div');
+            skillsHeader.className = 'creature-group-header';
+            const skillsTitle = document.createElement('span');
+            skillsTitle.className = 'creature-group-title';
+            skillsTitle.textContent = '技能';
+            const skillAddBtn = document.createElement('button');
+            skillAddBtn.type = 'button';
+            skillAddBtn.className = 'btn secondary';
+            skillAddBtn.textContent = '＋新增技能';
+            skillsHeader.append(skillsTitle, skillAddBtn);
+            const skillList = document.createElement('div');
+            skillList.className = 'creature-list';
+            const skillsNote = document.createElement('div');
+            skillsNote.className = 'creature-note';
+            skillsNote.textContent = '記錄生物可用技能與效果說明。';
+            skillsGroup.append(skillsHeader, skillList, skillsNote);
+            container.appendChild(skillsGroup);
+
+            const getAnimalsList = () => {
+                const list = typeof animalsProvider === 'function' ? animalsProvider() : [];
+                return Array.isArray(list) ? list : [];
+            };
+
+            function renderAnimations() {
+                const animals = getAnimalsList();
+                const hasClipOptions = animals.some(an => Array.isArray(an?.clips) && an.clips.some(clip => {
+                    if (!clip) return false;
+                    if (typeof clip === 'string') return clip.trim() !== '';
+                    if (typeof clip === 'object') return String(clip.name || '').trim() !== '';
+                    return false;
+                }));
+                animAddBtn.disabled = !hasClipOptions;
+                animAddBtn.title = hasClipOptions ? '' : '請先在「動物」分頁建立動畫 clip';
+                animList.innerHTML = '';
+                if (value.animations.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'creature-empty';
+                    empty.textContent = hasClipOptions ? '尚未新增動畫。' : '尚無可用的動畫 clip，請先在「動物」分頁建立動畫。';
+                    animList.appendChild(empty);
+                }
+                value.animations.forEach((anim, idx) => {
+                    if (!anim.uid) anim.uid = uid();
+                    const row = document.createElement('div');
+                    row.className = 'creature-animation-row';
+
+                    const animalWrap = document.createElement('div');
+                    animalWrap.className = 'creature-inline';
+                    const animalLabel = document.createElement('div');
+                    animalLabel.className = 'creature-inline-label';
+                    animalLabel.textContent = '動物';
+                    const animalSelect = document.createElement('select');
+                    animalWrap.append(animalLabel, animalSelect);
+                    row.appendChild(animalWrap);
+
+                    const clipWrap = document.createElement('div');
+                    clipWrap.className = 'creature-inline';
+                    const clipLabel = document.createElement('div');
+                    clipLabel.className = 'creature-inline-label';
+                    clipLabel.textContent = '動畫 clip';
+                    const clipSelect = document.createElement('select');
+                    clipWrap.append(clipLabel, clipSelect);
+                    row.appendChild(clipWrap);
+
+                    const chanceWrap = document.createElement('div');
+                    chanceWrap.className = 'creature-inline small';
+                    const chanceLabel = document.createElement('div');
+                    chanceLabel.className = 'creature-inline-label';
+                    chanceLabel.textContent = '觸發機率';
+                    const chanceInput = document.createElement('input');
+                    chanceInput.type = 'number';
+                    chanceInput.min = '0';
+                    chanceInput.max = '1';
+                    chanceInput.step = '0.05';
+                    chanceWrap.append(chanceLabel, chanceInput);
+                    row.appendChild(chanceWrap);
+
+                    const idleWrap = document.createElement('label');
+                    idleWrap.className = 'creature-inline checkbox';
+                    const idleCheckbox = document.createElement('input');
+                    idleCheckbox.type = 'checkbox';
+                    const idleText = document.createElement('span');
+                    idleText.textContent = '閒置動畫';
+                    idleWrap.append(idleCheckbox, idleText);
+                    row.appendChild(idleWrap);
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn danger';
+                    removeBtn.textContent = '移除';
+                    row.appendChild(removeBtn);
+
+                    animList.appendChild(row);
+
+                    const sortedAnimals = animals.slice().sort((a, b) => {
+                        const an = (a?.name || a?.id || '').toString();
+                        const bn = (b?.name || b?.id || '').toString();
+                        return an.localeCompare(bn, 'zh-Hant');
+                    });
+                    const currentAnimalId = (anim.animalId ?? '').toString();
+                    sortedAnimals.forEach(an => {
+                        const opt = document.createElement('option');
+                        const id = (an?.id ?? '').toString();
+                        opt.value = id;
+                        opt.textContent = (an?.name || id || '(未命名)');
+                        animalSelect.appendChild(opt);
+                    });
+                    if (currentAnimalId && !sortedAnimals.some(an => (an?.id ?? '').toString() === currentAnimalId)) {
+                        const opt = document.createElement('option');
+                        opt.value = currentAnimalId;
+                        opt.textContent = `${currentAnimalId}（已缺少）`;
+                        animalSelect.appendChild(opt);
+                    }
+                    if (!currentAnimalId && sortedAnimals[0]) {
+                        anim.animalId = (sortedAnimals[0]?.id ?? '').toString();
+                    }
+                    animalSelect.value = (anim.animalId ?? '').toString();
+                    animalSelect.disabled = sortedAnimals.length === 0;
+
+                    const refreshClipOptions = () => {
+                        const animalsLatest = getAnimalsList();
+                        const currentAnimal = animalsLatest.find(a => (a?.id ?? '').toString() === (anim.animalId ?? '').toString());
+                        const clipNames = Array.isArray(currentAnimal?.clips) ? currentAnimal.clips.map(clip => {
+                            if (!clip) return '';
+                            if (typeof clip === 'string') return clip;
+                            if (typeof clip === 'object') return String(clip.name || '');
+                            return '';
+                        }).filter(name => name.trim() !== '') : [];
+                        clipSelect.innerHTML = '';
+                        if (clipNames.length === 0) {
+                            const opt = document.createElement('option');
+                            opt.value = '';
+                            opt.textContent = '（無可用 clip）';
+                            clipSelect.appendChild(opt);
+                            clipSelect.disabled = true;
+                            if (!clipNames.includes(anim.clipName)) {
+                                anim.clipName = '';
+                            }
+                        } else {
+                            clipNames.forEach(name => {
+                                const opt = document.createElement('option');
+                                opt.value = name;
+                                opt.textContent = name;
+                                clipSelect.appendChild(opt);
+                            });
+                            if (anim.clipName && !clipNames.includes(anim.clipName)) {
+                                const opt = document.createElement('option');
+                                opt.value = anim.clipName;
+                                opt.textContent = `${anim.clipName}（已缺少）`;
+                                clipSelect.appendChild(opt);
+                            }
+                            clipSelect.disabled = false;
+                        }
+                        const desired = (anim.clipName ?? '').toString();
+                        if (desired && Array.from(clipSelect.options).some(opt => opt.value === desired)) {
+                            clipSelect.value = desired;
+                        } else {
+                            clipSelect.value = clipNames[0] || '';
+                            anim.clipName = clipSelect.value;
+                        }
+                    };
+                    refreshClipOptions();
+
+                    animalSelect.addEventListener('change', () => {
+                        anim.animalId = animalSelect.value;
+                        refreshClipOptions();
+                        emitChange();
+                    });
+                    clipSelect.addEventListener('change', () => {
+                        anim.clipName = clipSelect.value;
+                        emitChange();
+                    });
+
+                    let chanceValue = Number(anim.triggerChance);
+                    if (!Number.isFinite(chanceValue)) chanceValue = 1;
+                    chanceValue = Math.max(0, Math.min(1, chanceValue));
+                    anim.triggerChance = chanceValue;
+                    chanceInput.value = String(chanceValue);
+                    chanceInput.addEventListener('input', () => {
+                        anim.triggerChance = chanceInput.value;
+                    });
+                    chanceInput.addEventListener('change', () => {
+                        let next = Number(chanceInput.value);
+                        if (!Number.isFinite(next)) next = chanceValue;
+                        next = Math.max(0, Math.min(1, next));
+                        anim.triggerChance = next;
+                        chanceInput.value = String(next);
+                        emitChange();
+                    });
+
+                    idleCheckbox.checked = !!anim.isIdle;
+                    idleCheckbox.addEventListener('change', () => {
+                        const checked = idleCheckbox.checked;
+                        if (checked) {
+                            value.animations.forEach(other => {
+                                if (other.uid !== anim.uid) other.isIdle = false;
+                            });
+                        }
+                        anim.isIdle = checked;
+                        renderAnimations();
+                        emitChange();
+                    });
+
+                    removeBtn.addEventListener('click', () => {
+                        value.animations.splice(idx, 1);
+                        renderAnimations();
+                        emitChange();
+                    });
+                });
+            }
+
+            animAddBtn.addEventListener('click', () => {
+                if (animAddBtn.disabled) return;
+                const animals = getAnimalsList();
+                const primary = animals.find(an => Array.isArray(an?.clips) && an.clips.some(clip => {
+                    if (!clip) return false;
+                    if (typeof clip === 'string') return clip.trim() !== '';
+                    if (typeof clip === 'object') return String(clip.name || '').trim() !== '';
+                    return false;
+                })) || animals[0] || null;
+                const defaultAnimalId = primary ? (primary.id ?? '').toString() : '';
+                let defaultClip = '';
+                if (primary && Array.isArray(primary.clips)) {
+                    const clip = primary.clips.find(entry => {
+                        if (!entry) return false;
+                        const name = typeof entry === 'string' ? entry : (entry?.name ?? '');
+                        return String(name).trim() !== '';
+                    });
+                    if (clip) {
+                        defaultClip = typeof clip === 'string' ? clip : (clip?.name ?? '');
+                    }
+                }
+                value.animations.push({ uid: uid(), animalId: defaultAnimalId, clipName: defaultClip, triggerChance: 1, isIdle: value.animations.length === 0 });
+                renderAnimations();
+                emitChange();
+            });
+
+            function renderSkills() {
+                skillList.innerHTML = '';
+                if (value.skills.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'creature-empty';
+                    empty.textContent = '尚未新增技能。';
+                    skillList.appendChild(empty);
+                    return;
+                }
+                value.skills.forEach((skill, idx) => {
+                    if (!skill.uid) skill.uid = uid();
+                    const row = document.createElement('div');
+                    row.className = 'creature-skill-row';
+
+                    const nameWrap = document.createElement('div');
+                    nameWrap.className = 'creature-inline';
+                    const nameLabel = document.createElement('div');
+                    nameLabel.className = 'creature-inline-label';
+                    nameLabel.textContent = '名稱';
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.value = skill.name || '';
+                    nameWrap.append(nameLabel, nameInput);
+
+                    const descWrap = document.createElement('div');
+                    descWrap.className = 'creature-inline grow';
+                    const descLabel = document.createElement('div');
+                    descLabel.className = 'creature-inline-label';
+                    descLabel.textContent = '說明';
+                    const descArea = document.createElement('textarea');
+                    descArea.value = skill.description || '';
+                    descWrap.append(descLabel, descArea);
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn danger';
+                    removeBtn.textContent = '移除';
+
+                    row.append(nameWrap, descWrap, removeBtn);
+                    skillList.appendChild(row);
+
+                    nameInput.addEventListener('input', () => {
+                        skill.name = nameInput.value;
+                        emitChange();
+                    });
+                    nameInput.addEventListener('blur', () => {
+                        skill.name = nameInput.value.trim();
+                        nameInput.value = skill.name;
+                        emitChange();
+                    });
+
+                    descArea.addEventListener('input', () => {
+                        skill.description = descArea.value;
+                        emitChange();
+                    });
+                    descArea.addEventListener('blur', () => {
+                        skill.description = descArea.value.trim();
+                        descArea.value = skill.description;
+                        emitChange();
+                    });
+
+                    removeBtn.addEventListener('click', () => {
+                        value.skills.splice(idx, 1);
+                        renderSkills();
+                        emitChange();
+                    });
+                });
+            }
+
+            skillAddBtn.addEventListener('click', () => {
+                value.skills.push({ uid: uid(), name: '', description: '' });
+                renderSkills();
+                emitChange();
+            });
+
+            function renderAllSections() {
+                const allowed = Object.keys(creatureDispositionLabels);
+                if (!allowed.includes(value.disposition)) value.disposition = 'neutral';
+                dispositionSelect.value = value.disposition;
+                renderAnimations();
+                renderSkills();
+            }
+
+            renderAllSections();
+
+            return {
+                element: container,
+                getValue,
+                setValue(newValue) {
+                    value = toInternal(newValue);
+                    renderAllSections();
+                },
+                refreshAnimals() {
+                    renderAnimations();
+                }
+            };
+        }
+
         const iDropContainer = document.getElementById('iDropEditor');
         const createItemDropEditor = iDropContainer ? createDropEditor({ initialDrops: [], sourceOptions: getDropSourceOptions() }) : null;
         if (createItemDropEditor && iDropContainer) {
             iDropContainer.appendChild(createItemDropEditor.element);
+        }
+
+        const iCreatureFields = document.getElementById('iCreatureFields');
+        const iCreatureHost = document.getElementById('iCreatureEditorHost');
+        const createItemCreatureEditor = iCreatureHost ? createCreatureEditor({ getAnimals: () => project.animals }) : null;
+        if (createItemCreatureEditor && iCreatureHost) {
+            iCreatureHost.appendChild(createItemCreatureEditor.element);
+            createItemCreatureEditor.refreshAnimals();
+        }
+
+        function updateCreateCreatureVisibility() {
+            if (!iCreatureFields) return;
+            const isAnimal = (iCategory?.value || '') === 'animal';
+            iCreatureFields.style.display = isAnimal ? '' : 'none';
+        }
+
+        if (iCategory) {
+            iCategory.addEventListener('change', () => {
+                updateCreateCreatureVisibility();
+                if (createItemCreatureEditor) createItemCreatureEditor.refreshAnimals();
+            });
+            updateCreateCreatureVisibility();
         }
 
         addItem.onclick = async () => {
@@ -1688,6 +2325,13 @@
                 formData.append('drops', JSON.stringify(createItemDropEditor.getDrops()));
             } else {
                 formData.append('drops', '[]');
+            }
+            if (createItemCreatureEditor) {
+                if (categoryId === 'animal') {
+                    formData.append('creature', JSON.stringify(createItemCreatureEditor.getValue()));
+                } else {
+                    formData.append('creature', 'null');
+                }
             }
             if (iIcon.files && iIcon.files[0]) {
                 formData.append('image', iIcon.files[0]);
@@ -1722,6 +2366,11 @@
                 if (createItemDropEditor) {
                     createItemDropEditor.setDrops([]);
                 }
+                if (createItemCreatureEditor) {
+                    createItemCreatureEditor.setValue(null);
+                    createItemCreatureEditor.refreshAnimals();
+                }
+                updateCreateCreatureVisibility();
                 populateTerrainChecklist(document.getElementById('iTerrainChecks'), []);
             } catch (err) {
                 console.error('Failed to create item', err);
@@ -1749,6 +2398,7 @@
         function buildItemCard(item, openItems, dropOptions) {
             const terrainsLookup = new Map((project.terrains || []).map(t => [t.id, t.name]));
             const terrainNames = (item.terrains || []).map(id => terrainsLookup.get(id) || id);
+            let creatureEditor = null;
 
             const card = document.createElement('details');
             card.className = 'item-card';
@@ -1768,7 +2418,10 @@
             const dropMeta = document.createElement('span');
             dropMeta.className = 'item-drop-meta';
             dropMeta.textContent = `掉落：${formatDropSummary(item.drops, dropOptions)}`;
-            meta.append(idSpan, terrainSpan, dropMeta);
+            const creatureMeta = document.createElement('span');
+            creatureMeta.className = 'item-creature-meta';
+            creatureMeta.style.display = 'none';
+            meta.append(idSpan, terrainSpan, dropMeta, creatureMeta);
             summary.append(titleSpan, meta);
             card.appendChild(summary);
 
@@ -1788,6 +2441,17 @@
             const catSelect = createCategorySelect(item.categoryId);
             catRow.appendChild(catLabel); catRow.appendChild(catSelect);
 
+            const updateCreatureMeta = () => {
+                if (!creatureMeta) return;
+                if (catSelect.value === 'animal') {
+                    const data = creatureEditor ? creatureEditor.getValue() : item.creature;
+                    creatureMeta.style.display = '';
+                    creatureMeta.textContent = `生物：${formatCreatureSummary(data)}`;
+                } else {
+                    creatureMeta.style.display = 'none';
+                }
+            };
+
             const notesRow = document.createElement('div'); notesRow.className = 'row';
             const notesLabel = document.createElement('label'); notesLabel.textContent = '備註';
             const notesField = document.createElement('textarea'); notesField.value = item.notes || '';
@@ -1806,6 +2470,28 @@
             dropRow.appendChild(dropLabel);
             dropRow.appendChild(dropWrap);
 
+            const creatureRow = document.createElement('div'); creatureRow.className = 'row creature-row';
+            const creatureLabel = document.createElement('label'); creatureLabel.textContent = '生物設定';
+            const creatureHost = document.createElement('div'); creatureHost.className = 'creature-editor-host';
+            creatureRow.appendChild(creatureLabel); creatureRow.appendChild(creatureHost);
+            creatureEditor = createCreatureEditor({
+                initialValue: item.creature,
+                getAnimals: () => project.animals,
+                onChange: updateCreatureMeta
+            });
+            creatureHost.appendChild(creatureEditor.element);
+
+            const handleCategoryToggle = () => {
+                const isAnimal = catSelect.value === 'animal';
+                creatureRow.style.display = isAnimal ? '' : 'none';
+                if (isAnimal && creatureEditor) {
+                    creatureEditor.refreshAnimals();
+                }
+                updateCreatureMeta();
+            };
+            catSelect.addEventListener('change', handleCategoryToggle);
+            handleCategoryToggle();
+
             const terrainRow = document.createElement('div'); terrainRow.className = 'row';
             const terrainLabel = document.createElement('label'); terrainLabel.textContent = '適用地形';
             const terrainWrap = document.createElement('div'); terrainWrap.className = 'checklist';
@@ -1819,7 +2505,7 @@
             const deleteBtn = document.createElement('button'); deleteBtn.className = 'btn danger'; deleteBtn.textContent = '刪除此物品';
             actionsRow.append(saveBtn, uploadBtn, removeImageBtn, deleteBtn);
 
-            form.append(nameRow, catRow, notesRow, dropRow, terrainRow, actionsRow);
+            form.append(nameRow, catRow, notesRow, dropRow, creatureRow, terrainRow, actionsRow);
             body.appendChild(form);
 
             const imageSection = document.createElement('div');
@@ -1898,6 +2584,13 @@
                 formData.append('notes', notesField.value.trim());
                 formData.append('terrains', JSON.stringify(terrainsSelected));
                 formData.append('drops', JSON.stringify(dropEditor.getDrops()));
+                if (creatureEditor) {
+                    if (catSelect.value === 'animal') {
+                        formData.append('creature', JSON.stringify(creatureEditor.getValue()));
+                    } else {
+                        formData.append('creature', 'null');
+                    }
+                }
                 try {
                     const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
                     const data = await res.json();
@@ -2267,6 +2960,9 @@
                 card.querySelector('.del').onclick = () => { if (confirm('刪除此動物？')) { project.animals = project.animals.filter(x => x.id !== an.id); saveProject(); updatePreviewSelectors(); } };
                 animalList.appendChild(card);
             });
+            if (createItemCreatureEditor) {
+                createItemCreatureEditor.refreshAnimals();
+            }
         }
 
         function updatePreviewSelectors() {
