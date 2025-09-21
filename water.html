@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>水域動態場景</title>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Segoe UI", system-ui, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(24px, 5vw, 72px);
+            background: radial-gradient(circle at 20% 15%, rgba(30, 147, 255, 0.35), transparent 58%),
+                radial-gradient(circle at 82% 10%, rgba(78, 188, 255, 0.28), transparent 62%),
+                linear-gradient(180deg, #020915 0%, #031627 42%, #041b32 100%);
+            color: #e5f8ff;
+            overflow: hidden;
+        }
+
+        body.has-error {
+            background: radial-gradient(circle at 50% 10%, rgba(120, 26, 32, 0.55), transparent 55%),
+                linear-gradient(180deg, #140407 0%, #200b0f 48%, #160203 100%);
+            color: #ffe2e2;
+        }
+
+        main {
+            position: relative;
+            z-index: 2;
+            width: min(720px, 92vw);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(14px, 3vw, 28px);
+            padding: clamp(32px, 6vw, 52px);
+            border-radius: clamp(26px, 6vw, 36px);
+            background: linear-gradient(145deg, rgba(5, 31, 61, 0.82), rgba(5, 48, 88, 0.45));
+            border: 1px solid rgba(90, 181, 255, 0.32);
+            backdrop-filter: blur(22px);
+            box-shadow: 0 24px 70px rgba(1, 24, 56, 0.6);
+        }
+
+        h1 {
+            font-size: clamp(2.3rem, 5.2vw, 3.2rem);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .lead {
+            font-size: clamp(1.1rem, 2.4vw, 1.45rem);
+            line-height: 1.7;
+            color: rgba(222, 244, 255, 0.82);
+        }
+
+        .status {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: rgba(178, 227, 255, 0.92);
+            background: rgba(8, 54, 96, 0.42);
+            padding: 0.7rem 1.1rem;
+            border-radius: 16px;
+            border: 1px solid rgba(94, 194, 255, 0.35);
+            box-shadow: inset 0 0 18px rgba(12, 132, 196, 0.18);
+        }
+
+        body.has-error .status {
+            color: #ffc1c1;
+            background: rgba(96, 24, 36, 0.42);
+            border-color: rgba(255, 124, 124, 0.42);
+            box-shadow: inset 0 0 14px rgba(255, 71, 71, 0.2);
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: clamp(12px, 2.4vw, 22px);
+        }
+
+        .meta div {
+            padding: 0.85rem 1rem;
+            border-radius: 18px;
+            background: rgba(9, 46, 82, 0.38);
+            border: 1px solid rgba(92, 200, 255, 0.25);
+            box-shadow: inset 0 0 20px rgba(15, 121, 190, 0.18);
+        }
+
+        .meta dt {
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(179, 233, 255, 0.7);
+            margin-bottom: 0.35rem;
+        }
+
+        .meta dd {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #f4fbff;
+        }
+
+        .hint {
+            font-size: 0.9rem;
+            line-height: 1.65;
+            color: rgba(197, 237, 255, 0.75);
+        }
+
+        .water-stage {
+            position: fixed;
+            inset: -12vh -12vw;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .water-layer {
+            position: absolute;
+            inset: -25%;
+            background-repeat: repeat;
+            background-size: var(--tile-size, clamp(220px, 22vw, 420px)) var(--tile-size, clamp(220px, 22vw, 420px));
+            opacity: var(--layer-opacity, 0.75);
+            filter: saturate(1.35) brightness(1.05);
+            animation: drift var(--duration, 40s) linear infinite;
+        }
+
+        .layer-back {
+            --duration: 56s;
+            --layer-opacity: 0.5;
+            mix-blend-mode: screen;
+        }
+
+        .layer-mid {
+            --duration: 42s;
+            --layer-opacity: 0.68;
+            mix-blend-mode: lighten;
+            animation-direction: reverse;
+        }
+
+        .layer-top {
+            --duration: 28s;
+            --layer-opacity: 0.45;
+            mix-blend-mode: screen;
+            filter: saturate(1.4) brightness(1.1);
+        }
+
+        .water-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 25%, rgba(48, 182, 255, 0.25), transparent 60%),
+                radial-gradient(circle at 75% 65%, rgba(18, 88, 175, 0.2), transparent 70%),
+                linear-gradient(180deg, rgba(4, 24, 44, 0.55) 0%, rgba(4, 18, 35, 0.9) 100%);
+            mix-blend-mode: soft-light;
+            pointer-events: none;
+        }
+
+        @keyframes drift {
+            from {
+                background-position: 0 0;
+            }
+
+            to {
+                background-position: 960px 520px;
+            }
+        }
+
+        @media (max-width: 720px) {
+            main {
+                padding: clamp(24px, 8vw, 38px);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .water-layer {
+                animation: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="water-stage" aria-hidden="true">
+        <div class="water-layer layer-back" data-layer="back"></div>
+        <div class="water-layer layer-mid" data-layer="mid"></div>
+        <div class="water-layer layer-top" data-layer="top"></div>
+        <div class="water-overlay"></div>
+    </div>
+    <main>
+        <h1>水域動態場景</h1>
+        <p class="lead">根據 Terrains 資料中的「水」地形，動態套用影格生成滿版水波動畫。</p>
+        <div class="status" data-status>正在載入資料…</div>
+        <dl class="meta" data-meta hidden>
+            <div>
+                <dt>地形 ID</dt>
+                <dd data-field="id">–</dd>
+            </div>
+            <div>
+                <dt>影格數</dt>
+                <dd data-field="frames">–</dd>
+            </div>
+            <div>
+                <dt>播放速率</dt>
+                <dd data-field="fps">–</dd>
+            </div>
+        </dl>
+        <p class="hint">如需替換其他材質，只要於 <code>terrains.json</code> 中設定對應的動畫影格，即可套用到此場景。</p>
+    </main>
+    <script>
+        (() => {
+            const statusEl = document.querySelector('[data-status]');
+            const metaEl = document.querySelector('[data-meta]');
+            const metaFields = metaEl ? {
+                id: metaEl.querySelector('[data-field="id"]'),
+                frames: metaEl.querySelector('[data-field="frames"]'),
+                fps: metaEl.querySelector('[data-field="fps"]')
+            } : {};
+            const layers = Array.from(document.querySelectorAll('.water-layer'));
+            const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+            let frames = [];
+            let fps = 6;
+            let frameInterval = 1000 / fps;
+            let frameIndex = 0;
+            let animationFrameId = null;
+            let lastTimestamp = 0;
+
+            const updateStatus = (text) => {
+                if (statusEl) {
+                    statusEl.textContent = text;
+                }
+            };
+
+            const applyFrame = (index) => {
+                if (!frames.length) {
+                    return;
+                }
+                const frame = frames[index];
+                const url = `url("${frame.path.replace(/"/g, '\\"')}")`;
+                layers.forEach((layer, layerIndex) => {
+                    layer.style.backgroundImage = url;
+                    if (!layer.dataset.initialized) {
+                        layer.dataset.initialized = 'true';
+                        layer.style.backgroundPosition = `${-40 * layerIndex}px ${-110 * layerIndex}px`;
+                    }
+                });
+            };
+
+            const configureLayers = (frame) => {
+                const baseSize = Math.max(frame.width, frame.height);
+                layers.forEach((layer, layerIndex) => {
+                    const scale = 1 + layerIndex * 0.22;
+                    const dimension = Math.max(120, Math.round(baseSize * scale));
+                    layer.style.setProperty('--tile-size', `${dimension}px`);
+                    layer.style.backgroundSize = `${dimension}px ${dimension}px`;
+                });
+            };
+
+            const stopAnimation = () => {
+                if (animationFrameId !== null) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+            };
+
+            const animationLoop = (timestamp) => {
+                if (timestamp - lastTimestamp >= frameInterval) {
+                    frameIndex = (frameIndex + 1) % frames.length;
+                    applyFrame(frameIndex);
+                    lastTimestamp = timestamp;
+                }
+                animationFrameId = requestAnimationFrame(animationLoop);
+            };
+
+            const startAnimation = () => {
+                if (motionQuery.matches || !frames.length || animationFrameId !== null) {
+                    return;
+                }
+                lastTimestamp = performance.now();
+                animationFrameId = requestAnimationFrame(animationLoop);
+            };
+
+            const updateMeta = (terrain) => {
+                if (!metaEl) {
+                    return;
+                }
+                metaFields.id.textContent = terrain.id;
+                metaFields.frames.textContent = `${frames.length} 張`;
+                metaFields.fps.textContent = `${fps} FPS`;
+                metaEl.hidden = false;
+            };
+
+            const preloadImage = (path) => new Promise((resolve, reject) => {
+                const img = new Image();
+                img.decoding = 'async';
+                img.onload = () => resolve({ path, width: img.naturalWidth, height: img.naturalHeight });
+                img.onerror = () => reject(new Error(`無法載入影格：${path}`));
+                img.src = path;
+            });
+
+            const fetchTerrainData = async () => {
+                updateStatus('正在載入地形資料…');
+                const response = await fetch('Terrains/terrains.json');
+                if (!response.ok) {
+                    throw new Error(`無法讀取 Terrains 資料（${response.status}）`);
+                }
+                const data = await response.json();
+                if (!Array.isArray(data.terrains)) {
+                    throw new Error('Terrains 資料格式錯誤：缺少 terrains 陣列');
+                }
+
+                const terrain = data.terrains.find((item) => item.id === 'water_457b57' || item.tag === '水' || (typeof item.name === 'string' && item.name.toLowerCase() === 'water'));
+                if (!terrain) {
+                    throw new Error('找不到名為「水」的地形設定');
+                }
+
+                const imageLookup = new Map((terrain.images || []).map((image) => [image.filename, image.path]));
+                const animation = (terrain.animations || []).find((anim) => typeof anim.name === 'string' && anim.name.toLowerCase() === 'water') || (terrain.animations || [])[0];
+                if (!animation) {
+                    throw new Error('水地形缺少動畫描述');
+                }
+                if (!Array.isArray(animation.frames) || !animation.frames.length) {
+                    throw new Error('水地形動畫缺少影格設定');
+                }
+
+                fps = Number(animation.fps) || 6;
+                frameInterval = 1000 / fps;
+
+                const framePaths = animation.frames
+                    .map((frame) => imageLookup.get(frame.filename))
+                    .filter((path) => typeof path === 'string');
+
+                if (!framePaths.length) {
+                    throw new Error('找不到水動畫對應的影格素材');
+                }
+
+                updateStatus('預先載入影格中…');
+                frames = await Promise.all(framePaths.map(preloadImage));
+                configureLayers(frames[0]);
+                applyFrame(0);
+                updateMeta(terrain);
+
+                if (motionQuery.matches) {
+                    updateStatus('已載入靜態影格（偵測到減少動態偏好）');
+                    return;
+                }
+
+                updateStatus(`使用 ${frames.length} 張影格（${fps} FPS）`);
+                startAnimation();
+            };
+
+            fetchTerrainData().catch((error) => {
+                console.error(error);
+                document.body.classList.add('has-error');
+                updateStatus(error.message);
+            });
+
+            const handleMotionPreferenceChange = (event) => {
+                if (event.matches) {
+                    stopAnimation();
+                    if (frames.length) {
+                        updateStatus('已載入靜態影格（遵循減少動態偏好）');
+                    }
+                } else if (frames.length) {
+                    updateStatus(`使用 ${frames.length} 張影格（${fps} FPS）`);
+                    lastTimestamp = performance.now();
+                    startAnimation();
+                }
+            };
+
+            if (typeof motionQuery.addEventListener === 'function') {
+                motionQuery.addEventListener('change', handleMotionPreferenceChange);
+            } else if (typeof motionQuery.addListener === 'function') {
+                motionQuery.addListener(handleMotionPreferenceChange);
+            }
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    stopAnimation();
+                } else if (!motionQuery.matches && frames.length) {
+                    updateStatus(`使用 ${frames.length} 張影格（${fps} FPS）`);
+                    lastTimestamp = performance.now();
+                    startAnimation();
+                }
+            });
+        })();
+    </script>
+</body>
+
+</html>
