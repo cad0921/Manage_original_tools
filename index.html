@@ -749,6 +749,169 @@
             margin: 0;
         }
 
+        .terrain-animations {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .terrain-animations-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .terrain-animations-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #d7e0ff;
+        }
+
+        .terrain-animations-meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .terrain-animations-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .terrain-animations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .terrain-animation-card {
+            border: 1px solid #23306a;
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(16, 25, 58, .9), rgba(10, 16, 40, .9));
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .terrain-animation-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terrain-animation-name {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .terrain-animation-name input {
+            width: 100%;
+        }
+
+        .terrain-animation-fps {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .terrain-animation-fps input {
+            width: 80px;
+        }
+
+        .terrain-animation-meta {
+            font-size: 12px;
+            color: var(--muted);
+            flex: 1;
+        }
+
+        .terrain-animation-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .terrain-frame-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .terrain-frame-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #27306b;
+            border-radius: 10px;
+            padding: 8px;
+            background: rgba(12, 18, 48, .7);
+        }
+
+        .terrain-frame-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            border: 1px solid #23306a;
+            background: #0e1533;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .terrain-frame-thumb img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .terrain-frame-select {
+            min-width: 200px;
+        }
+
+        .terrain-frame-duration {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .terrain-frame-duration input {
+            width: 110px;
+        }
+
+        .terrain-frame-duration .hint {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .terrain-frame-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .terrain-animation-empty {
+            padding: 14px;
+            border: 1px dashed #27306b;
+            border-radius: 12px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+            background: rgba(12, 18, 45, .6);
+        }
+
+        .terrain-animation-footer {
+            display: flex;
+            justify-content: flex-end;
+        }
+
         .checklist {
             display: flex;
             flex-wrap: wrap;
@@ -1247,6 +1410,7 @@
                             <button id="addAnimal" class="btn" type="button">儲存動物</button>
                             <button id="resetAnimal" class="btn secondary" type="button">清空表單</button>
                         </div>
+
                         <div class="note" id="animalEditorStatus">目前為新增模式</div>
                         <div class="note">提示：建立或編輯動畫後，記得儲存動物即可同步更新列表。</div>
                     </div>
@@ -1353,6 +1517,470 @@
             { id: 'animal', label: '生物' }
         ];
 
+        function cleanTerrainImages(images) {
+            const seen = new Set();
+            const result = [];
+            (Array.isArray(images) ? images : []).forEach(img => {
+                if (!img || typeof img !== 'object') return;
+                const filename = typeof img.filename === 'string' ? img.filename.trim() : '';
+                const path = typeof img.path === 'string' ? img.path.trim() : '';
+                if (!filename || !path || seen.has(filename)) return;
+                seen.add(filename);
+                const entry = { ...img };
+                entry.filename = filename;
+                entry.path = path;
+                entry.label = typeof entry.label === 'string' ? entry.label : '';
+                if (entry.uploadedAt !== undefined && entry.uploadedAt !== null) {
+                    entry.uploadedAt = String(entry.uploadedAt);
+                }
+                result.push(entry);
+            });
+            return result;
+        }
+
+        function normalizeTerrainImages(images) {
+            return cleanTerrainImages(images).map(img => ({
+                filename: img.filename,
+                path: img.path,
+                label: typeof img.label === 'string' ? img.label : '',
+                uploadedAt: img.uploadedAt || null,
+            }));
+        }
+
+        function sanitizeTerrainAnimations(rawAnimations, images = []) {
+            const imageLookup = new Map();
+            (Array.isArray(images) ? images : []).forEach(img => {
+                if (!img || typeof img !== 'object') return;
+                const filename = typeof img.filename === 'string' ? img.filename : '';
+                if (!filename) return;
+                imageLookup.set(filename, img);
+            });
+            const sanitized = [];
+            const seenIds = new Set();
+            (Array.isArray(rawAnimations) ? rawAnimations : []).forEach(anim => {
+                if (!anim || typeof anim !== 'object') return;
+                let id = typeof anim.id === 'string' ? anim.id.trim() : '';
+                if (!id) id = 'anim_' + uid();
+                while (seenIds.has(id)) id = id + '_' + uid();
+                seenIds.add(id);
+                const name = typeof anim.name === 'string' ? anim.name.trim() : '';
+                let fps = Number(anim.fps);
+                if (!Number.isFinite(fps) || fps <= 0) fps = 6;
+                fps = Math.round(fps);
+                if (fps < 1) fps = 1;
+                if (fps > 60) fps = 60;
+                const frames = Array.isArray(anim.frames) ? anim.frames : [];
+                const sanitizedFrames = [];
+                frames.forEach(frame => {
+                    if (!frame || typeof frame !== 'object') return;
+                    let filename = frame.filename ?? frame.file ?? '';
+                    filename = typeof filename === 'string' ? filename.trim() : '';
+                    if (!filename || !imageLookup.has(filename)) return;
+                    let duration = null;
+                    if (frame.duration !== undefined && frame.duration !== null && frame.duration !== '') {
+                        const parsed = Number(frame.duration);
+                        if (Number.isFinite(parsed) && parsed > 0) {
+                            const clamped = Math.min(30, Math.max(0.01, parsed));
+                            duration = Math.round(clamped * 1000) / 1000;
+                        }
+                    }
+                    const entry = { filename };
+                    if (duration !== null) entry.duration = duration;
+                    sanitizedFrames.push(entry);
+                });
+                if (sanitizedFrames.length === 0) return;
+                sanitized.push({ id, name, fps, frames: sanitizedFrames });
+            });
+            return sanitized;
+        }
+
+        function describeTerrainAnimation(anim) {
+            const fps = Math.max(1, Math.round(Number(anim?.fps) || 6));
+            const frames = Array.isArray(anim?.frames) ? anim.frames : [];
+            const totalSeconds = frames.reduce((sum, frame) => {
+                const raw = frame && frame.duration !== undefined && frame.duration !== null ? Number(frame.duration) : NaN;
+                const dur = Number.isFinite(raw) && raw > 0 ? raw : 1 / fps;
+                return sum + dur;
+            }, 0);
+            return {
+                count: frames.length,
+                fps,
+                seconds: Math.round(totalSeconds * 100) / 100,
+            };
+        }
+
+        function createTerrainAnimationEditor({ images = [], initialAnimations = [], onChange } = {}) {
+            let availableImages = normalizeTerrainImages(images);
+            let animations = sanitizeTerrainAnimations(initialAnimations, availableImages);
+
+            const container = document.createElement('div');
+            container.className = 'terrain-animations';
+
+            const header = document.createElement('div');
+            header.className = 'terrain-animations-header';
+            const title = document.createElement('div');
+            title.className = 'terrain-animations-title';
+            title.textContent = '動畫設定';
+            const meta = document.createElement('div');
+            meta.className = 'terrain-animations-meta';
+            const controls = document.createElement('div');
+            controls.className = 'terrain-animations-controls';
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'btn secondary';
+            addBtn.textContent = '新增動畫';
+            controls.appendChild(addBtn);
+            header.append(title, meta, controls);
+            container.appendChild(header);
+
+            const list = document.createElement('div');
+            list.className = 'terrain-animations-list';
+            container.appendChild(list);
+
+            const updateHeader = (value) => {
+                const count = Array.isArray(value) ? value.length : 0;
+                meta.textContent = count === 0 ? '尚未新增動畫' : `共 ${count} 組動畫`;
+            };
+
+            const getValue = () => sanitizeTerrainAnimations(animations, availableImages);
+
+            const emitChange = () => {
+                const snapshot = getValue();
+                updateHeader(snapshot);
+                if (typeof onChange === 'function') onChange(snapshot);
+            };
+
+            const renderList = () => {
+                list.innerHTML = '';
+                const currentImages = normalizeTerrainImages(availableImages);
+                animations = sanitizeTerrainAnimations(animations, currentImages);
+                if (currentImages.length === 0) {
+                    addBtn.disabled = true;
+                    const empty = document.createElement('div');
+                    empty.className = 'terrain-animation-empty';
+                    empty.textContent = '請先上傳圖片，才能建立動畫。';
+                    list.appendChild(empty);
+                    updateHeader([]);
+                    return;
+                }
+                addBtn.disabled = false;
+                if (!Array.isArray(animations) || animations.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'terrain-animation-empty';
+                    empty.textContent = '尚未新增動畫。';
+                    list.appendChild(empty);
+                    updateHeader([]);
+                    return;
+                }
+
+                animations.forEach((anim, idx) => {
+                    if (!anim || typeof anim !== 'object') return;
+                    if (!Array.isArray(anim.frames)) anim.frames = [];
+                    const card = document.createElement('div');
+                    card.className = 'terrain-animation-card';
+
+                    const headerRow = document.createElement('div');
+                    headerRow.className = 'terrain-animation-header';
+
+                    const nameWrap = document.createElement('div');
+                    nameWrap.className = 'terrain-animation-name';
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.placeholder = '動畫名稱';
+                    nameInput.value = anim.name || '';
+                    nameInput.addEventListener('input', () => {
+                        anim.name = nameInput.value;
+                        emitChange();
+                    });
+                    nameWrap.appendChild(nameInput);
+                    headerRow.appendChild(nameWrap);
+
+                    const fpsWrap = document.createElement('div');
+                    fpsWrap.className = 'terrain-animation-fps';
+                    const fpsLabel = document.createElement('span');
+                    fpsLabel.textContent = 'FPS';
+                    const fpsInput = document.createElement('input');
+                    fpsInput.type = 'number';
+                    fpsInput.min = '1';
+                    fpsInput.max = '60';
+                    fpsInput.value = String(Math.max(1, Math.round(Number(anim.fps) || 6)));
+                    fpsInput.addEventListener('change', () => {
+                        let value = Number(fpsInput.value);
+                        if (!Number.isFinite(value) || value <= 0) value = anim.fps || 6;
+                        value = Math.round(value);
+                        if (value < 1) value = 1;
+                        if (value > 60) value = 60;
+                        anim.fps = value;
+                        fpsInput.value = String(value);
+                        renderList();
+                        emitChange();
+                    });
+                    fpsWrap.append(fpsLabel, fpsInput);
+                    headerRow.appendChild(fpsWrap);
+
+                    const metaInfo = document.createElement('div');
+                    metaInfo.className = 'terrain-animation-meta';
+                    const info = describeTerrainAnimation(anim);
+                    metaInfo.textContent = `${info.count} 幀｜${info.fps} FPS｜${info.seconds.toFixed(2)} 秒`;
+                    headerRow.appendChild(metaInfo);
+
+                    const headerActions = document.createElement('div');
+                    headerActions.className = 'terrain-animation-actions';
+                    const removeAnimBtn = document.createElement('button');
+                    removeAnimBtn.type = 'button';
+                    removeAnimBtn.className = 'ghost-btn danger';
+                    removeAnimBtn.textContent = '刪除動畫';
+                    removeAnimBtn.addEventListener('click', () => {
+                        animations.splice(idx, 1);
+                        renderList();
+                        emitChange();
+                    });
+                    headerActions.appendChild(removeAnimBtn);
+                    headerRow.appendChild(headerActions);
+
+                    card.appendChild(headerRow);
+
+                    const framesList = document.createElement('div');
+                    framesList.className = 'terrain-frame-list';
+
+                    if (anim.frames.length === 0) {
+                        const empty = document.createElement('div');
+                        empty.className = 'terrain-animation-empty';
+                        empty.textContent = '尚未加入幀，請使用下方按鈕新增。';
+                        framesList.appendChild(empty);
+                    } else {
+                        anim.frames.forEach((frame, frameIdx) => {
+                            const row = document.createElement('div');
+                            row.className = 'terrain-frame-row';
+
+                            const thumb = document.createElement('div');
+                            thumb.className = 'terrain-frame-thumb';
+                            const current = currentImages.find(img => img.filename === frame.filename);
+                            if (current) {
+                                const imgEl = document.createElement('img');
+                                imgEl.src = current.path;
+                                imgEl.alt = current.label || current.filename;
+                                thumb.appendChild(imgEl);
+                            } else {
+                                const missing = document.createElement('span');
+                                missing.textContent = '缺少';
+                                missing.style.fontSize = '12px';
+                                missing.style.color = 'var(--muted)';
+                                thumb.appendChild(missing);
+                            }
+                            row.appendChild(thumb);
+
+                            const select = document.createElement('select');
+                            select.className = 'terrain-frame-select';
+                            currentImages.forEach(img => {
+                                const opt = document.createElement('option');
+                                opt.value = img.filename;
+                                opt.textContent = img.label ? `${img.label} (${img.filename})` : img.filename;
+                                select.appendChild(opt);
+                            });
+                            if (frame.filename && !currentImages.some(img => img.filename === frame.filename)) {
+                                const opt = document.createElement('option');
+                                opt.value = frame.filename;
+                                opt.textContent = `${frame.filename}（已缺少）`;
+                                select.appendChild(opt);
+                            }
+                            select.value = frame.filename || (currentImages[0]?.filename ?? '');
+                            select.addEventListener('change', () => {
+                                frame.filename = select.value;
+                                renderList();
+                                emitChange();
+                            });
+                            row.appendChild(select);
+
+                            const durationWrap = document.createElement('div');
+                            durationWrap.className = 'terrain-frame-duration';
+                            const durationInput = document.createElement('input');
+                            durationInput.type = 'number';
+                            durationInput.step = '0.01';
+                            durationInput.min = '0';
+                            durationInput.value = frame.duration != null ? String(frame.duration) : '';
+                            durationInput.placeholder = (1 / Math.max(1, anim.fps || 6)).toFixed(2);
+                            durationInput.addEventListener('change', () => {
+                                const raw = durationInput.value.trim();
+                                if (raw === '') {
+                                    frame.duration = null;
+                                    durationInput.value = '';
+                                } else {
+                                    let value = Number(raw);
+                                    if (!Number.isFinite(value) || value <= 0) {
+                                        frame.duration = null;
+                                        durationInput.value = '';
+                                    } else {
+                                        value = Math.min(30, Math.max(0.01, value));
+                                        frame.duration = Math.round(value * 1000) / 1000;
+                                        durationInput.value = String(frame.duration);
+                                    }
+                                }
+                                renderList();
+                                emitChange();
+                            });
+                            durationWrap.appendChild(durationInput);
+                            const hint = document.createElement('div');
+                            hint.className = 'hint';
+                            hint.textContent = `預設 ${(1 / Math.max(1, anim.fps || 6)).toFixed(2)} 秒`;
+                            durationWrap.appendChild(hint);
+                            row.appendChild(durationWrap);
+
+                            const actions = document.createElement('div');
+                            actions.className = 'terrain-frame-actions';
+                            const upBtn = document.createElement('button');
+                            upBtn.type = 'button';
+                            upBtn.className = 'ghost-btn';
+                            upBtn.textContent = '上移';
+                            upBtn.disabled = frameIdx === 0;
+                            upBtn.addEventListener('click', () => {
+                                if (frameIdx === 0) return;
+                                const [currentFrame] = anim.frames.splice(frameIdx, 1);
+                                anim.frames.splice(frameIdx - 1, 0, currentFrame);
+                                renderList();
+                                emitChange();
+                            });
+                            const downBtn = document.createElement('button');
+                            downBtn.type = 'button';
+                            downBtn.className = 'ghost-btn';
+                            downBtn.textContent = '下移';
+                            downBtn.disabled = frameIdx === anim.frames.length - 1;
+                            downBtn.addEventListener('click', () => {
+                                if (frameIdx >= anim.frames.length - 1) return;
+                                const [currentFrame] = anim.frames.splice(frameIdx, 1);
+                                anim.frames.splice(frameIdx + 1, 0, currentFrame);
+                                renderList();
+                                emitChange();
+                            });
+                            const removeFrameBtn = document.createElement('button');
+                            removeFrameBtn.type = 'button';
+                            removeFrameBtn.className = 'ghost-btn danger';
+                            removeFrameBtn.textContent = '移除';
+                            removeFrameBtn.addEventListener('click', () => {
+                                anim.frames.splice(frameIdx, 1);
+                                if (anim.frames.length === 0) animations.splice(idx, 1);
+                                renderList();
+                                emitChange();
+                            });
+                            actions.append(upBtn, downBtn, removeFrameBtn);
+                            row.appendChild(actions);
+
+                            framesList.appendChild(row);
+                        });
+                    }
+
+                    card.appendChild(framesList);
+
+                    const footer = document.createElement('div');
+                    footer.className = 'terrain-animation-footer';
+                    const addFrameBtn = document.createElement('button');
+                    addFrameBtn.type = 'button';
+                    addFrameBtn.className = 'btn secondary';
+                    addFrameBtn.textContent = '新增幀';
+                    addFrameBtn.disabled = currentImages.length === 0;
+                    addFrameBtn.addEventListener('click', () => {
+                        const fallback = currentImages[0]?.filename;
+                        if (!fallback) return;
+                        anim.frames.push({ filename: fallback });
+                        renderList();
+                        emitChange();
+                    });
+                    footer.appendChild(addFrameBtn);
+                    card.appendChild(footer);
+
+                    list.appendChild(card);
+                });
+
+                updateHeader(animations);
+            };
+
+            addBtn.addEventListener('click', () => {
+                const currentImages = normalizeTerrainImages(availableImages);
+                if (currentImages.length === 0) return;
+                const defaultFilename = currentImages[0]?.filename;
+                animations.push({
+                    id: 'anim_' + uid(),
+                    name: '',
+                    fps: 6,
+                    frames: defaultFilename ? [{ filename: defaultFilename }] : [],
+                });
+                renderList();
+                emitChange();
+            });
+
+            renderList();
+            updateHeader(animations);
+
+            return {
+                element: container,
+                getValue,
+                setImages(newImages) {
+                    availableImages = normalizeTerrainImages(newImages);
+                    animations = sanitizeTerrainAnimations(animations, availableImages);
+                    renderList();
+                    emitChange();
+                },
+                setAnimations(newAnimations) {
+                    animations = sanitizeTerrainAnimations(newAnimations, availableImages);
+                    renderList();
+                    emitChange();
+                },
+                removeFramesByFilename(filename) {
+                    if (!filename) return;
+                    let changed = false;
+                    animations.forEach(anim => {
+                        if (!anim || !Array.isArray(anim.frames)) return;
+                        const before = anim.frames.length;
+                        anim.frames = anim.frames.filter(frame => frame && frame.filename !== filename);
+                        if (anim.frames.length !== before) changed = true;
+                    });
+                    animations = animations.filter(anim => Array.isArray(anim.frames) && anim.frames.length > 0);
+                    if (changed) {
+                        renderList();
+                        emitChange();
+                    }
+                }
+            };
+        }
+
+        function upgradeTerrainAnimations() {
+            if (!Array.isArray(project.terrains)) {
+                project.terrains = [];
+                return;
+            }
+            project.terrains = project.terrains.map(tr => {
+                if (!tr || typeof tr !== 'object') return tr;
+                const copy = { ...tr };
+                copy.images = cleanTerrainImages(copy.images);
+                copy.animations = sanitizeTerrainAnimations(copy.animations, copy.images);
+                return copy;
+            });
+        }
+
+    <script>
+        // ----------------------------- Data Types -----------------------------
+        const LS_KEY = 'asset-cms-v1';
+        const uid = () => Math.random().toString(36).slice(2, 9);
+        const terrainApiUrl = 'terrain_api.php';
+        const itemApiUrl = 'item_api.php';
+        let pendingOpenItemId = null;
+        let pendingOpenCategoryId = null;
+        let selectedItemId = null;
+        let selectedCategoryId = null;
+        let editingAnimalTerrains = new Set();
+        const defaultItemCategories = [
+            { id: 'decor', label: '裝飾' },
+            { id: 'interactive', label: '可互動' },
+            { id: 'building', label: '建材' },
+            { id: 'drop', label: '掉落物' },
+            { id: 'resource', label: '素材' },
+            { id: 'consumable', label: '消耗品' },
+            { id: 'crop', label: '農作物' },
+            { id: 'mineral', label: '礦物' },
+            { id: 'tree', label: '樹木' },
+            { id: 'animal', label: '生物' }
+        ];
+
         const emptyProject = () => ({
             meta: { name: 'My Game Assets', version: '1.0.0', updatedAt: new Date().toISOString() },
             terrains: [
@@ -1372,12 +2000,16 @@
         if (!Array.isArray(project.itemCategories) || project.itemCategories.length === 0) {
             project.itemCategories = defaultItemCategories.slice();
         }
+        if (!Array.isArray(project.terrains)) {
+            project.terrains = [];
+        }
         if (!Array.isArray(project.items)) {
             project.items = [];
         }
         if (!Array.isArray(project.animals)) {
             project.animals = [];
         }
+        upgradeTerrainAnimations();
         upgradeAnimalClips();
         const saveProject = () => { project.meta.updatedAt = new Date().toISOString(); localStorage.setItem(LS_KEY, JSON.stringify(project)); renderAll(); };
 
@@ -1422,6 +2054,7 @@
                     throw new Error(data.message || '新增地形失敗');
                 }
                 project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                upgradeTerrainAnimations();
                 tName.value = '';
                 tTag.value = '';
                 tImages.value = '';
@@ -1440,7 +2073,8 @@
             terrainList.innerHTML = '';
             (project.terrains || []).forEach(tr => {
                 const tagText = tr.tag || '-';
-                const images = Array.isArray(tr.images) ? tr.images : [];
+                const images = normalizeTerrainImages(tr.images);
+                let animationState = sanitizeTerrainAnimations(tr.animations, images);
                 const imageCount = images.length;
 
                 const details = document.createElement('details');
@@ -1450,36 +2084,50 @@
 
                 const summary = document.createElement('summary');
                 summary.className = 'terrain-summary';
-                summary.innerHTML = `
-                    <div class="title-wrap">
-                        <span class="title">${tr.name}</span>
-                        <span class="pill">Tag: ${tagText}</span>
-                    </div>
-                    <div class="meta">
-                        <span>ID: ${tr.id}</span>
-                        <span>圖片 ${imageCount} 張</span>
-                    </div>`;
+                const titleWrap = document.createElement('div');
+                titleWrap.className = 'title-wrap';
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'title';
+                titleSpan.textContent = tr.name;
+                const pill = document.createElement('span');
+                pill.className = 'pill';
+                pill.textContent = `Tag: ${tagText}`;
+                titleWrap.append(titleSpan, pill);
+                summary.appendChild(titleWrap);
+                const meta = document.createElement('div');
+                meta.className = 'meta';
+                const idMeta = document.createElement('span');
+                idMeta.textContent = `ID: ${tr.id}`;
+                const imageMeta = document.createElement('span');
+                imageMeta.textContent = `圖片 ${imageCount} 張`;
+                const animMeta = document.createElement('span');
+                animMeta.textContent = `動畫 ${animationState.length} 組`;
+                meta.append(idMeta, imageMeta, animMeta);
+                summary.appendChild(meta);
                 details.appendChild(summary);
 
                 const body = document.createElement('div');
                 body.className = 'terrain-body';
 
-                // Editable form for name/tag
                 const form = document.createElement('div');
                 form.className = 'terrain-form';
 
                 const nameRow = document.createElement('div'); nameRow.className = 'row';
                 const nameLabel = document.createElement('label'); nameLabel.textContent = '名稱';
                 const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.value = tr.name;
-                nameRow.appendChild(nameLabel); nameRow.appendChild(nameInput);
+                nameInput.addEventListener('input', () => { titleSpan.textContent = nameInput.value || tr.name; });
+                nameRow.append(nameLabel, nameInput);
 
                 const tagRow = document.createElement('div'); tagRow.className = 'row';
                 const tagLabel = document.createElement('label'); tagLabel.textContent = 'Tag';
                 const tagInput = document.createElement('input'); tagInput.type = 'text'; tagInput.value = tr.tag || '';
-                tagRow.appendChild(tagLabel); tagRow.appendChild(tagInput);
+                tagInput.addEventListener('input', () => {
+                    const next = tagInput.value.trim() || '-';
+                    pill.textContent = `Tag: ${next}`;
+                });
+                tagRow.append(tagLabel, tagInput);
 
-                form.appendChild(nameRow);
-                form.appendChild(tagRow);
+                form.append(nameRow, tagRow);
 
                 const formActions = document.createElement('div'); formActions.className = 'terrain-actions';
                 const saveBtn = document.createElement('button'); saveBtn.className = 'btn'; saveBtn.textContent = '儲存變更';
@@ -1490,7 +2138,9 @@
 
                 body.appendChild(form);
 
-                // Image gallery
+                const imageUsageUpdaters = [];
+                let animationEditorInstance = null;
+
                 if (imageCount === 0) {
                     const empty = document.createElement('div');
                     empty.className = 'terrain-empty';
@@ -1525,15 +2175,20 @@
                         renameToggle.className = 'terrain-image-toggle';
                         const renameCheckbox = document.createElement('input');
                         renameCheckbox.type = 'checkbox';
-                        renameToggle.appendChild(renameCheckbox);
-                        renameToggle.append(' 同步修改檔案名稱');
+                        renameToggle.append(renameCheckbox, ' 同步修改檔案名稱');
                         info.appendChild(renameToggle);
 
-                        const meta = document.createElement('div');
-                        meta.className = 'meta';
+                        const metaInfo = document.createElement('div');
+                        metaInfo.className = 'meta';
                         const uploadedAt = img.uploadedAt ? new Date(img.uploadedAt).toLocaleString() : '';
-                        meta.textContent = `檔案: ${img.filename || '未知'}${uploadedAt ? `｜上傳：${uploadedAt}` : ''}`;
-                        info.appendChild(meta);
+                        const fileInfo = document.createElement('span');
+                        fileInfo.textContent = `檔案: ${img.filename || '未知'}${uploadedAt ? `｜上傳：${uploadedAt}` : ''}`;
+                        metaInfo.appendChild(fileInfo);
+                        const usageInfo = document.createElement('span');
+                        usageInfo.style.marginLeft = '8px';
+                        usageInfo.style.display = 'none';
+                        metaInfo.appendChild(usageInfo);
+                        info.appendChild(metaInfo);
 
                         const imgActions = document.createElement('div');
                         imgActions.className = 'terrain-image-actions';
@@ -1546,8 +2201,19 @@
                         imgActions.append(renameBtn, removeBtn);
                         info.appendChild(imgActions);
 
-                        card.appendChild(info);
-                        imagesContainer.appendChild(card);
+                        const refreshUsage = (snapshot) => {
+                            const collection = Array.isArray(snapshot) ? snapshot : animationState;
+                            const usage = collection.filter(anim => Array.isArray(anim.frames) && anim.frames.some(frame => frame.filename === img.filename)).length;
+                            if (usage > 0) {
+                                usageInfo.textContent = `使用於 ${usage} 組動畫`;
+                                usageInfo.style.display = '';
+                            } else {
+                                usageInfo.textContent = '';
+                                usageInfo.style.display = 'none';
+                            }
+                        };
+                        refreshUsage(animationState);
+                        imageUsageUpdaters.push(refreshUsage);
 
                         renameBtn.onclick = async (e) => {
                             e.preventDefault();
@@ -1566,11 +2232,14 @@
                             formData.append('renameImages', JSON.stringify([
                                 { filename: img.filename, label: newLabel, renameFile: renameCheckbox.checked }
                             ]));
+                            const animationPayload = animationEditorInstance ? animationEditorInstance.getValue() : animationState;
+                            formData.append('animations', JSON.stringify(animationPayload));
                             try {
                                 const res = await fetch(terrainApiUrl, { method: 'POST', body: formData });
                                 const data = await res.json();
                                 if (!res.ok || data.status !== 'ok') throw new Error(data.message || '更新失敗');
                                 project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                                upgradeTerrainAnimations();
                                 saveProject();
                             } catch (err) {
                                 console.error('Failed to rename image', err);
@@ -1583,7 +2252,20 @@
 
                         removeBtn.onclick = async (e) => {
                             e.preventDefault();
-                            if (!confirm('確定刪除此圖片？檔案將被移除。')) return;
+                            const getUsageCount = () => {
+                                const snapshot = animationEditorInstance ? animationEditorInstance.getValue() : animationState;
+                                return snapshot.filter(anim => Array.isArray(anim.frames) && anim.frames.some(frame => frame.filename === img.filename)).length;
+                            };
+                            const usageBefore = getUsageCount();
+                            if (usageBefore > 0) {
+                                const confirmed = confirm(`此圖片被 ${usageBefore} 個動畫引用，移除後將從動畫中刪除。確定刪除？`);
+                                if (!confirmed) return;
+                                if (animationEditorInstance) {
+                                    animationEditorInstance.removeFramesByFilename(img.filename);
+                                }
+                            } else if (!confirm('確定刪除此圖片？檔案將被移除。')) {
+                                return;
+                            }
                             const original = removeBtn.textContent;
                             removeBtn.disabled = true;
                             removeBtn.textContent = '刪除中...';
@@ -1593,11 +2275,14 @@
                             formData.append('name', nameInput.value.trim() || tr.name);
                             formData.append('tag', tagInput.value.trim());
                             formData.append('removeImages', JSON.stringify([img.filename]));
+                            const animationPayload = animationEditorInstance ? animationEditorInstance.getValue() : animationState;
+                            formData.append('animations', JSON.stringify(animationPayload));
                             try {
                                 const res = await fetch(terrainApiUrl, { method: 'POST', body: formData });
                                 const data = await res.json();
                                 if (!res.ok || data.status !== 'ok') throw new Error(data.message || '刪除失敗');
                                 project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                                upgradeTerrainAnimations();
                                 saveProject();
                             } catch (err) {
                                 console.error('Failed to delete image', err);
@@ -1607,13 +2292,31 @@
                                 removeBtn.textContent = original;
                             }
                         };
+
+                        card.appendChild(info);
+                        imagesContainer.appendChild(card);
                     });
                     body.appendChild(imagesContainer);
                 }
 
+                const animationEditorObj = createTerrainAnimationEditor({
+                    images,
+                    initialAnimations: animationState,
+                    onChange(updated) {
+                        animationState = updated;
+                        animMeta.textContent = `動畫 ${animationState.length} 組`;
+                        imageUsageUpdaters.forEach(fn => fn(updated));
+                    }
+                });
+                animationEditorInstance = animationEditorObj;
+                body.appendChild(animationEditorObj.element);
+                const initialSnapshot = animationEditorObj.getValue();
+                animationState = initialSnapshot;
+                animMeta.textContent = `動畫 ${animationState.length} 組`;
+                imageUsageUpdaters.forEach(fn => fn(initialSnapshot));
+
                 details.appendChild(body);
 
-                // Button behaviors
                 saveBtn.onclick = async (e) => {
                     e.preventDefault();
                     const newName = nameInput.value.trim();
@@ -1626,11 +2329,14 @@
                     formData.append('id', tr.id);
                     formData.append('name', newName);
                     formData.append('tag', tagInput.value.trim());
+                    const animationPayload = animationEditorInstance ? animationEditorInstance.getValue() : animationState;
+                    formData.append('animations', JSON.stringify(animationPayload));
                     try {
                         const res = await fetch(terrainApiUrl, { method: 'POST', body: formData });
                         const data = await res.json();
                         if (!res.ok || data.status !== 'ok') throw new Error(data.message || '儲存失敗');
                         project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                        upgradeTerrainAnimations();
                         saveProject();
                     } catch (err) {
                         console.error('Failed to update terrain', err);
@@ -1658,11 +2364,14 @@
                         formData.append('name', nameInput.value.trim() || tr.name);
                         formData.append('tag', tagInput.value.trim());
                         files.forEach(file => formData.append('images[]', file));
+                        const animationPayload = animationEditorInstance ? animationEditorInstance.getValue() : animationState;
+                        formData.append('animations', JSON.stringify(animationPayload));
                         try {
                             const res = await fetch(terrainApiUrl, { method: 'POST', body: formData });
                             const data = await res.json();
                             if (!res.ok || data.status !== 'ok') throw new Error(data.message || '新增圖片失敗');
                             project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                            upgradeTerrainAnimations();
                             saveProject();
                             details.open = true;
                         } catch (err) {
@@ -1691,6 +2400,7 @@
                         const data = await res.json();
                         if (!res.ok || data.status !== 'ok') throw new Error(data.message || '刪除地形失敗');
                         project.terrains = Array.isArray(data.terrains) ? data.terrains : [];
+                        upgradeTerrainAnimations();
                         (project.items || []).forEach(it => {
                             if (!Array.isArray(it.terrains)) return;
                             it.terrains = it.terrains.filter(id => id !== tr.id);
@@ -1767,6 +2477,7 @@
                     throw new Error(data.message || '資料格式錯誤');
                 }
                 project.terrains = data.terrains;
+                upgradeTerrainAnimations();
                 saveProject();
             } catch (err) {
                 console.warn('同步地形資料失敗', err);
@@ -3677,6 +4388,7 @@
             if (target) {
                 startEditAnimal(target.id);
             }
+
             alert(isUpdate ? '動物已更新' : '動物已新增');
         };
 
