@@ -1957,30 +1957,6 @@
             });
         }
 
-    <script>
-        // ----------------------------- Data Types -----------------------------
-        const LS_KEY = 'asset-cms-v1';
-        const uid = () => Math.random().toString(36).slice(2, 9);
-        const terrainApiUrl = 'terrain_api.php';
-        const itemApiUrl = 'item_api.php';
-        let pendingOpenItemId = null;
-        let pendingOpenCategoryId = null;
-        let selectedItemId = null;
-        let selectedCategoryId = null;
-        let editingAnimalTerrains = new Set();
-        const defaultItemCategories = [
-            { id: 'decor', label: '裝飾' },
-            { id: 'interactive', label: '可互動' },
-            { id: 'building', label: '建材' },
-            { id: 'drop', label: '掉落物' },
-            { id: 'resource', label: '素材' },
-            { id: 'consumable', label: '消耗品' },
-            { id: 'crop', label: '農作物' },
-            { id: 'mineral', label: '礦物' },
-            { id: 'tree', label: '樹木' },
-            { id: 'animal', label: '生物' }
-        ];
-
         const emptyProject = () => ({
             meta: { name: 'My Game Assets', version: '1.0.0', updatedAt: new Date().toISOString() },
             terrains: [
