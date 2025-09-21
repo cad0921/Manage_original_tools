@@ -93,9 +93,18 @@
             gap: 16px
         }
 
+        .panel[data-tab="items"] .grid {
+            grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+            align-items: start;
+        }
+
         @media (max-width:1000px) {
             .grid {
                 grid-template-columns: 1fr
+            }
+
+            .panel[data-tab="items"] .grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -932,27 +941,40 @@
             <div class="body">
                 <div class="grid">
                     <div>
-                        <div class="row"><label>名稱</label><input id="iName" type="text" placeholder="紅寶石礦 / 木箱 / 陷阱" />
+                        <div class="list" id="itemList"></div>
+                    </div>
+                    <div>
+                        <div class="row">
+                            <label>名稱</label>
+                            <input id="iName" type="text" placeholder="紅寶石礦 / 木箱 / 陷阱" />
                         </div>
-                        <div class="row"><label>分類</label>
+                        <div class="row">
+                            <label>分類</label>
                             <select id="iCategory"></select>
                         </div>
-                        <div class="row"><label>圖片</label><input id="iIcon" type="file" accept="image/*" /></div>
-                        <div class="row"><label>適用地形</label>
+                        <div class="row">
+                            <label>圖片</label>
+                            <input id="iIcon" type="file" accept="image/*" />
+                        </div>
+                        <div class="row">
+                            <label>適用地形</label>
                             <div id="iTerrainChecks" class="checklist"></div>
                         </div>
-                        <div class="row"><label>備註</label><textarea id="iNote" placeholder="限制、互動規則等…"></textarea></div>
-                        <div class="row item-drop-row"><label>掉落設定</label>
+                        <div class="row">
+                            <label>備註</label>
+                            <textarea id="iNote" placeholder="限制、互動規則等…"></textarea>
+                        </div>
+                        <div class="row item-drop-row">
+                            <label>掉落設定</label>
                             <div id="iDropEditor" class="drop-editor-wrap"></div>
                         </div>
                         <div class="row creature-row" id="iCreatureFields">
                             <label>生物設定</label>
                             <div class="creature-editor-host" id="iCreatureEditorHost"></div>
                         </div>
-                        <div class="row"><button id="addItem" class="btn">新增物品</button></div>
-                    </div>
-                    <div>
-                        <div class="list" id="itemList"></div>
+                        <div class="row">
+                            <button id="addItem" class="btn">新增物品</button>
+                        </div>
                     </div>
                 </div>
             </div>
