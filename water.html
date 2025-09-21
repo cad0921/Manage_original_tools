@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>水之律動 – Full Water Experience</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --deep-blue: #021b32;
+            --mid-blue: #0d3358;
+            --aqua: #3fa9ff;
+            --aqua-light: #6ed0ff;
+            --foam: rgba(202, 242, 255, 0.9);
+            --glow: rgba(111, 207, 255, 0.35);
+            --panel: rgba(5, 31, 54, 0.55);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 15%, rgba(74, 187, 255, 0.22), transparent 55%),
+                radial-gradient(circle at 80% 0%, rgba(72, 150, 255, 0.2), transparent 60%),
+                linear-gradient(180deg, #010c1a 0%, #031830 45%, #041b36 100%);
+            font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+            color: #dff6ff;
+            overflow: hidden;
+        }
+
+        .water-scene {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(40px, 8vw, 120px) clamp(20px, 6vw, 80px);
+            overflow: hidden;
+            isolation: isolate;
+        }
+
+        .water-scene::before,
+        .water-scene::after {
+            content: "";
+            position: absolute;
+            inset: -30%;
+            background: radial-gradient(circle at 50% 50%, rgba(72, 167, 255, 0.22) 0%, transparent 55%);
+            opacity: 0.8;
+            animation: swirl 60s linear infinite;
+            mix-blend-mode: screen;
+        }
+
+        .water-scene::after {
+            inset: -40%;
+            background: radial-gradient(circle at 45% 55%, rgba(62, 206, 255, 0.18) 0%, transparent 62%);
+            animation-duration: 85s;
+            animation-direction: reverse;
+            opacity: 0.65;
+        }
+
+        @keyframes swirl {
+            from {
+                transform: rotate(0deg) scale(1.05);
+            }
+
+            to {
+                transform: rotate(360deg) scale(1.05);
+            }
+        }
+
+        .wave {
+            position: absolute;
+            left: 50%;
+            width: 180vw;
+            height: 180vw;
+            border-radius: 45% 55% 50% 50% / 50% 48% 52% 50%;
+            background: radial-gradient(circle at 50% 35%, rgba(96, 214, 255, 0.35) 0%, rgba(53, 163, 255, 0.18) 30%, rgba(2, 27, 50, 0) 65%);
+            filter: blur(0);
+            transform: translate(-50%, 0) scale(1.1);
+            mix-blend-mode: screen;
+            animation: float 26s ease-in-out infinite;
+        }
+
+        .wave.wave-two {
+            top: 45%;
+            width: 160vw;
+            height: 160vw;
+            background: radial-gradient(circle at 52% 32%, rgba(68, 184, 255, 0.28) 0%, rgba(33, 134, 246, 0.15) 30%, rgba(2, 27, 50, 0) 70%);
+            animation-duration: 34s;
+            animation-delay: -6s;
+        }
+
+        .wave.wave-three {
+            top: 55%;
+            width: 200vw;
+            height: 200vw;
+            background: radial-gradient(circle at 48% 30%, rgba(45, 160, 240, 0.22) 0%, rgba(32, 120, 210, 0.12) 32%, rgba(2, 27, 50, 0) 68%);
+            animation-duration: 42s;
+            animation-delay: -12s;
+        }
+
+        .wave.wave-one {
+            top: 40%;
+        }
+
+        @keyframes float {
+            0%,
+            100% {
+                transform: translate(-50%, 0) scale(1.12) rotate(0deg);
+            }
+
+            50% {
+                transform: translate(-48%, -2%) scale(1.18) rotate(3deg);
+            }
+        }
+
+        .bubbles {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .bubbles span {
+            position: absolute;
+            bottom: -60px;
+            width: clamp(12px, 3vw, 24px);
+            height: clamp(12px, 3vw, 24px);
+            border-radius: 50%;
+            background: rgba(223, 246, 255, 0.2);
+            box-shadow: 0 0 12px rgba(122, 210, 255, 0.35);
+            animation: bubble 16s linear infinite;
+        }
+
+        .bubbles span:nth-child(1) {
+            left: 12%;
+            animation-duration: 18s;
+        }
+
+        .bubbles span:nth-child(2) {
+            left: 28%;
+            animation-duration: 22s;
+            animation-delay: -4s;
+        }
+
+        .bubbles span:nth-child(3) {
+            left: 46%;
+            animation-duration: 19s;
+            animation-delay: -9s;
+        }
+
+        .bubbles span:nth-child(4) {
+            left: 64%;
+            animation-duration: 23s;
+            animation-delay: -6s;
+        }
+
+        .bubbles span:nth-child(5) {
+            left: 78%;
+            animation-duration: 20s;
+            animation-delay: -12s;
+        }
+
+        .bubbles span:nth-child(6) {
+            left: 90%;
+            animation-duration: 24s;
+            animation-delay: -3s;
+        }
+
+        @keyframes bubble {
+            0% {
+                transform: translateY(0) scale(0.8);
+                opacity: 0;
+            }
+
+            15% {
+                opacity: 0.55;
+            }
+
+            80% {
+                opacity: 0.35;
+            }
+
+            100% {
+                transform: translateY(-130vh) scale(1.25);
+                opacity: 0;
+            }
+        }
+
+        .content {
+            position: relative;
+            z-index: 2;
+            width: min(560px, 90vw);
+            padding: clamp(32px, 6vw, 60px);
+            border-radius: 28px;
+            background: var(--panel);
+            border: 1px solid rgba(93, 192, 255, 0.25);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 40px 80px rgba(2, 20, 35, 0.5);
+            text-align: center;
+            animation: gently-rise 10s ease-in-out infinite;
+        }
+
+        @keyframes gently-rise {
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 999px;
+            background: rgba(63, 169, 255, 0.16);
+            color: var(--aqua-light);
+            font-size: 14px;
+            letter-spacing: 3px;
+        }
+
+        h1 {
+            font-size: clamp(36px, 6vw, 64px);
+            font-weight: 700;
+            margin: 26px 0 18px;
+            text-shadow: 0 12px 24px rgba(14, 94, 143, 0.6);
+        }
+
+        p {
+            line-height: 1.8;
+            color: rgba(223, 246, 255, 0.82);
+            font-size: 18px;
+        }
+
+        .actions {
+            margin-top: clamp(28px, 5vw, 44px);
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            padding: 14px 32px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, rgba(63, 169, 255, 0.9), rgba(133, 234, 255, 0.85));
+            color: #02182e;
+            font-weight: 600;
+            letter-spacing: 1.2px;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 16px 32px rgba(49, 159, 235, 0.35);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 24px 44px rgba(78, 185, 255, 0.42);
+            filter: brightness(1.1);
+        }
+
+        .btn-ghost {
+            padding: 14px 24px;
+            border-radius: 999px;
+            border: 1px solid rgba(132, 218, 255, 0.5);
+            color: rgba(192, 238, 255, 0.85);
+            text-decoration: none;
+            font-weight: 500;
+            letter-spacing: 1px;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .btn-ghost:hover {
+            background: rgba(111, 207, 255, 0.12);
+            color: var(--foam);
+            border-color: rgba(155, 230, 255, 0.6);
+        }
+
+        .meta {
+            margin-top: clamp(32px, 6vw, 52px);
+            display: grid;
+            gap: 18px;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            color: rgba(197, 236, 255, 0.7);
+            font-size: 14px;
+            letter-spacing: 1.5px;
+        }
+
+        .meta-row span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .meta-row span::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(128, 221, 255, 0.8);
+            box-shadow: 0 0 8px rgba(128, 221, 255, 0.8);
+        }
+
+        @media (max-width: 640px) {
+            .content {
+                padding: 28px 24px 36px;
+            }
+
+            p {
+                font-size: 16px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn-ghost,
+            .btn-primary {
+                width: 100%;
+                text-align: center;
+            }
+
+            .meta-row {
+                font-size: 12px;
+                letter-spacing: 1px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="water-scene">
+        <div class="wave wave-one"></div>
+        <div class="wave wave-two"></div>
+        <div class="wave wave-three"></div>
+
+        <div class="bubbles">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <main class="content">
+            <span class="eyebrow">FLOW STATE</span>
+            <h1>水之律動</h1>
+            <p>
+                以清澈的層次、溫柔的波光與靈動的氣泡，讓整個視覺畫面沉浸在水的呼吸之中。這是一個
+                滿版為水而生的場景，專為想要把清涼、沈靜與活力帶進作品的你而設計。
+            </p>
+            <div class="actions">
+                <a class="btn-primary" href="#">探索湛藍</a>
+                <a class="btn-ghost" href="#">了解氛圍設計</a>
+            </div>
+            <div class="meta">
+                <div class="meta-row">
+                    <span>光源反射</span>
+                    <span>深海色階</span>
+                    <span>柔和泡沫</span>
+                </div>
+                <div class="meta-row">
+                    <span>水流動畫</span>
+                    <span>沉浸背景</span>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>
