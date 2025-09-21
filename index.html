@@ -326,6 +326,142 @@
             color: #cfe0ff
         }
 
+        .file-input-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .form-inline-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .form-inline-check input {
+            margin: 0;
+        }
+
+        .preview-thumb-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .preview-thumb {
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid #23306a;
+            background: #0e1533;
+        }
+
+        .clip-section,
+        .clip-drafts {
+            border: 1px solid #1f2955;
+            border-radius: 12px;
+            background: #0c1434;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .clip-section-head,
+        .clip-drafts-header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .clip-section-title,
+        .clip-drafts-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #d7e0ff;
+        }
+
+        .clip-section-status,
+        .clip-drafts-meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .clip-toolbar {
+            justify-content: flex-end;
+        }
+
+        .clip-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .clip-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border: 1px solid #27306b;
+            border-radius: 10px;
+            padding: 10px;
+            background: #0e1533;
+        }
+
+        .clip-item.active {
+            border-color: #3b55c8;
+            box-shadow: inset 0 0 0 1px rgba(122, 162, 255, .3);
+        }
+
+        .clip-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .clip-item-meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .clip-item-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .ghost-btn {
+            padding: 4px 8px;
+            border-radius: 8px;
+            border: 1px solid #2a355f;
+            background: rgba(18, 26, 63, .6);
+            color: #c5d0ff;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .ghost-btn:hover {
+            border-color: #3d57b8;
+            color: white;
+        }
+
+        .ghost-btn.danger {
+            border-color: #5a2231;
+            color: #ff9fa6;
+        }
+
+        .ghost-btn.danger:hover {
+            color: white;
+        }
+
         .frame-duration-list {
             display: flex;
             flex-direction: column;
@@ -357,6 +493,15 @@
             word-break: break-all
         }
 
+        .frame-duration-thumb {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            border: 1px solid #23306a;
+            object-fit: cover;
+            background: #0e1533;
+        }
+
         .frame-duration-item input[type="number"] {
             max-width: 90px
         }
@@ -366,10 +511,45 @@
             color: var(--muted)
         }
 
+        .frame-duration-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+
+        .frame-duration-item .ghost-btn {
+            font-size: 11px;
+            padding: 4px 6px;
+        }
+
         .frame-duration-empty,
         .frame-duration-hint {
             font-size: 12px;
             color: var(--muted)
+        }
+
+        #aTerrainChecks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        #aTerrainChecks label.terrain-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid #2a3a80;
+            background: #121a3f;
+            font-size: 12px;
+            color: #cfe0ff;
+            cursor: pointer;
+        }
+
+        #aTerrainChecks label.terrain-chip input {
+            margin: 0;
         }
 
         .list {
@@ -1004,27 +1184,71 @@
             <div class="body">
                 <div class="grid">
                     <div>
-                        <div class="row"><label>名稱</label><input id="aName" type="text" placeholder="小安德 / 史萊姆" /></div>
-                        <div class="row"><label>預覽圖</label><input id="aPreview" type="file" accept="image/*" /></div>
-                        <div class="row"><label>動畫名稱</label><input id="clipName" type="text"
-                                placeholder="idle / walk / attack" /></div>
-                        <div class="row"><label>FPS</label><input id="clipFps" type="number" value="6" min="1"
-                                max="60" /></div>
-                        <div class="row"><label>動畫幀圖片</label><input id="clipFrames" type="file" accept="image/*"
-                                multiple /></div>
-                        <div class="row"><label>各幀秒數</label>
+                        <div class="row">
+                            <label>名稱</label>
+                            <input id="aName" type="text" placeholder="小安德 / 史萊姆" />
+                        </div>
+                        <div class="row">
+                            <label>預覽圖</label>
+                            <div class="file-input-wrap">
+                                <input id="aPreview" type="file" accept="image/*" />
+                                <div class="preview-thumb-wrap">
+                                    <img id="aPreviewThumb" class="preview-thumb" alt="預覽圖" style="display:none" />
+                                    <button id="clearPreview" class="ghost-btn danger" type="button">移除預覽圖</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="clip-section">
+                            <div class="clip-section-head">
+                                <div class="clip-section-title">動畫編輯</div>
+                                <div class="clip-section-status" id="clipEditorStatus">新增動畫草稿</div>
+                            </div>
+                            <div class="row">
+                                <label>動畫名稱</label>
+                                <input id="clipName" type="text" placeholder="idle / walk / attack" />
+                            </div>
+                            <div class="row">
+                                <label>FPS</label>
+                                <input id="clipFps" type="number" value="6" min="1" max="60" />
+                            </div>
+                            <div class="row">
+                                <label>動畫幀圖片</label>
+                                <div class="file-input-wrap">
+                                    <input id="clipFrames" type="file" accept="image/*" multiple />
+                                    <label class="form-inline-check">
+                                        <input id="clipFrameAppend" type="checkbox" />
+                                        加到現有幀
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <label>各幀秒數</label>
                                 <div id="clipFrameList" class="frame-duration-list">
                                     <div class="frame-duration-empty">尚未選擇圖片</div>
                                 </div>
                             </div>
-                        <div class="row"><label>生成地形</label>
-                            <div id="aTerrainChecks" class="chips"></div>
+                            <div class="toolbar clip-toolbar">
+                                <button id="newClip" class="btn secondary" type="button">新增空白動畫</button>
+                                <button id="addClip" class="btn" type="button">儲存動畫</button>
+                            </div>
                         </div>
-                        <div class="toolbar">
-                            <button id="addClip" class="btn secondary">加入動畫到此動物</button>
-                            <button id="addAnimal" class="btn">新增/更新 動物</button>
+                        <div class="clip-drafts">
+                            <div class="clip-drafts-header">
+                                <div class="clip-drafts-title">此動物的動畫列表</div>
+                                <div class="clip-drafts-meta">可在此調整順序或刪除動畫</div>
+                            </div>
+                            <div id="clipDraftList" class="clip-list"></div>
                         </div>
-                        <div class="note">提示：可以先選擇預覽圖與動畫幀，再按「加入動畫」；重複加入多個 clip。</div>
+                        <div class="row">
+                            <label>生成地形</label>
+                            <div id="aTerrainChecks"></div>
+                        </div>
+                        <div class="toolbar animal-toolbar">
+                            <button id="addAnimal" class="btn" type="button">儲存動物</button>
+                            <button id="resetAnimal" class="btn secondary" type="button">清空表單</button>
+                        </div>
+                        <div class="note" id="animalEditorStatus">目前為新增模式</div>
+                        <div class="note">提示：建立或編輯動畫後，記得儲存動物即可同步更新列表。</div>
                     </div>
                     <div>
                         <div class="list" id="animalList"></div>
@@ -1113,6 +1337,7 @@
         let pendingOpenCategoryId = null;
         let selectedItemId = null;
         let selectedCategoryId = null;
+        let editingAnimalTerrains = new Set();
         const defaultItemCategories = [
             { id: 'decor', label: '裝飾' },
             { id: 'interactive', label: '可互動' },
@@ -1512,23 +1737,22 @@
             const wrap = document.getElementById('aTerrainChecks');
             if (!wrap) return;
             wrap.innerHTML = '';
+            const selectedSet = editingAnimalTerrains instanceof Set ? editingAnimalTerrains : new Set();
             (project.terrains || []).forEach(tr => {
-                const id = 'achk_' + tr.id;
                 const label = document.createElement('label');
-                label.className = 'pill';
-                label.textContent = tr.name;
-                label.style.cursor = 'pointer';
-                label.htmlFor = id;
+                label.className = 'terrain-chip';
                 const ck = document.createElement('input');
                 ck.type = 'checkbox';
-                ck.id = id;
                 ck.dataset.tid = tr.id;
-                ck.style.marginRight = '6px';
-                const holder = document.createElement('div');
-                holder.className = 'row';
-                holder.appendChild(ck);
-                holder.appendChild(label);
-                wrap.appendChild(holder);
+                ck.checked = selectedSet.has(tr.id);
+                ck.onchange = () => {
+                    if (ck.checked) selectedSet.add(tr.id);
+                    else selectedSet.delete(tr.id);
+                };
+                const span = document.createElement('span');
+                span.textContent = tr.name;
+                label.append(ck, span);
+                wrap.appendChild(label);
             });
         }
 
@@ -2885,43 +3109,99 @@
         // ----------------------------- Animals & Clips -----------------------------
         const aName = document.getElementById('aName');
         const aPreview = document.getElementById('aPreview');
+        const clearPreview = document.getElementById('clearPreview');
+        const previewThumb = document.getElementById('aPreviewThumb');
         const clipName = document.getElementById('clipName');
         const clipFps = document.getElementById('clipFps');
         const clipFrames = document.getElementById('clipFrames');
+        const clipFrameAppend = document.getElementById('clipFrameAppend');
         const clipFrameList = document.getElementById('clipFrameList');
+        const newClip = document.getElementById('newClip');
         const addClip = document.getElementById('addClip');
         const addAnimal = document.getElementById('addAnimal');
+        const resetAnimal = document.getElementById('resetAnimal');
+        const clipDraftList = document.getElementById('clipDraftList');
+        const clipEditorStatus = document.getElementById('clipEditorStatus');
+        const animalEditorStatus = document.getElementById('animalEditorStatus');
         const animalList = document.getElementById('animalList');
         const previewAnimal = document.getElementById('previewAnimal');
         const previewClip = document.getElementById('previewClip');
         const previewSpeed = document.getElementById('previewSpeed');
 
-        let tempClips = [];
+        let clipDrafts = [];
         let selectedClipFrames = [];
+        let editingClipIndex = null;
+        let editingAnimalId = null;
+        let editingPreviewDataUrl = null;
+        let pendingPreviewDataUrl = null;
+
+        function updatePreviewThumbnail(src) {
+            if (!previewThumb) return;
+            if (src) {
+                previewThumb.src = src;
+                previewThumb.style.display = '';
+                if (clearPreview) clearPreview.disabled = false;
+            } else {
+                previewThumb.src = '';
+                previewThumb.style.display = 'none';
+                if (clearPreview) clearPreview.disabled = true;
+            }
+        }
 
         function normalizeClipFrames(clip) {
             if (!clip || typeof clip !== 'object') return [];
             if (!Array.isArray(clip.frames)) clip.frames = [];
             const fps = Math.max(1, Number(clip.fps || 6));
             const fallbackDuration = 1 / fps;
-            clip.frames = clip.frames.map(frame => {
+            clip.frames = clip.frames.map((frame, idx) => {
                 if (typeof frame === 'string') {
-                    return { src: frame, duration: fallbackDuration };
+                    return { src: frame, duration: fallbackDuration, name: `frame-${idx + 1}` };
                 }
                 if (frame && typeof frame === 'object') {
                     const src = frame.src || frame.dataUrl || frame.image || '';
                     if (!src) return null;
                     const duration = Math.max(0.01, Number(frame.duration) || fallbackDuration);
-                    return { src, duration };
+                    const name = frame.name || frame.label || `frame-${idx + 1}`;
+                    return { src, duration, name };
                 }
                 return null;
             }).filter(Boolean);
             return clip.frames;
         }
 
+        function upgradeAnimalClips() {
+            if (!Array.isArray(project.animals)) return;
+            project.animals.forEach(an => {
+                if (!Array.isArray(an.clips)) an.clips = [];
+                an.clips.forEach(clip => {
+                    if (!clip || typeof clip !== 'object') return;
+                    if (!clip.id) clip.id = 'clip_' + uid();
+                    normalizeClipFrames(clip);
+                });
+            });
+        }
+
+        function moveFrame(index, delta) {
+            const newIndex = index + delta;
+            if (newIndex < 0 || newIndex >= selectedClipFrames.length) return;
+            const [frame] = selectedClipFrames.splice(index, 1);
+            selectedClipFrames.splice(newIndex, 0, frame);
+            renderClipFrameDurations();
+        }
+
+        function removeFrame(index) {
+            if (index < 0 || index >= selectedClipFrames.length) return;
+            selectedClipFrames.splice(index, 1);
+            renderClipFrameDurations();
+        }
+
         function renderClipFrameDurations() {
             if (!clipFrameList) return;
             clipFrameList.innerHTML = '';
+            if (clipFrameAppend) {
+                clipFrameAppend.disabled = selectedClipFrames.length === 0;
+                if (clipFrameAppend.disabled) clipFrameAppend.checked = false;
+            }
             if (selectedClipFrames.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'frame-duration-empty';
@@ -2935,6 +3215,10 @@
                 const index = document.createElement('span');
                 index.className = 'frame-duration-index';
                 index.textContent = `#${idx + 1}`;
+                const thumb = document.createElement('img');
+                thumb.className = 'frame-duration-thumb';
+                thumb.src = frame.src;
+                thumb.alt = frame.name || `frame-${idx + 1}`;
                 const name = document.createElement('span');
                 name.className = 'frame-duration-name';
                 name.textContent = frame.name || `frame-${idx + 1}`;
@@ -2953,30 +3237,177 @@
                 const suffix = document.createElement('span');
                 suffix.className = 'frame-duration-suffix';
                 suffix.textContent = '秒';
-                item.append(index, name, input, suffix);
+                const actions = document.createElement('div');
+                actions.className = 'frame-duration-actions';
+                const upBtn = document.createElement('button');
+                upBtn.type = 'button';
+                upBtn.className = 'ghost-btn';
+                upBtn.textContent = '上移';
+                upBtn.disabled = idx === 0;
+                upBtn.onclick = () => moveFrame(idx, -1);
+                const downBtn = document.createElement('button');
+                downBtn.type = 'button';
+                downBtn.className = 'ghost-btn';
+                downBtn.textContent = '下移';
+                downBtn.disabled = idx === selectedClipFrames.length - 1;
+                downBtn.onclick = () => moveFrame(idx, 1);
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'ghost-btn danger';
+                removeBtn.textContent = '刪除';
+                removeBtn.onclick = () => removeFrame(idx);
+                actions.append(upBtn, downBtn, removeBtn);
+                item.append(index, thumb, name, input, suffix, actions);
                 clipFrameList.appendChild(item);
             });
             const hint = document.createElement('div');
             hint.className = 'frame-duration-hint';
-            hint.textContent = '提示：預設依 FPS 換算，可單獨調整。';
+            hint.textContent = '提示：預設依 FPS 換算，可調整秒數並調整順序。';
             clipFrameList.appendChild(hint);
         }
 
-        function upgradeAnimalClips() {
-            if (!Array.isArray(project.animals)) return;
-            project.animals.forEach(an => {
-                if (!Array.isArray(an.clips)) an.clips = [];
-                an.clips.forEach(normalizeClipFrames);
+        function updateClipEditorStatus() {
+            if (clipEditorStatus) {
+                if (editingClipIndex === null) {
+                    clipEditorStatus.textContent = '新增動畫草稿';
+                } else {
+                    const clip = clipDrafts[editingClipIndex];
+                    clipEditorStatus.textContent = clip ? `編輯動畫：${clip.name || '(未命名)'}` : '編輯動畫';
+                }
+            }
+            if (addClip) {
+                addClip.textContent = editingClipIndex === null ? '儲存動畫' : '更新動畫';
+            }
+        }
+
+        function renderClipDraftList() {
+            if (!clipDraftList) return;
+            clipDraftList.innerHTML = '';
+            if (!Array.isArray(clipDrafts) || clipDrafts.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'creature-empty';
+                empty.textContent = '尚未加入任何動畫';
+                clipDraftList.appendChild(empty);
+                return;
+            }
+            clipDrafts.forEach((clip, idx) => {
+                const item = document.createElement('div');
+                item.className = 'clip-item';
+                if (idx === editingClipIndex) item.classList.add('active');
+                const header = document.createElement('div');
+                header.className = 'clip-item-header';
+                const title = document.createElement('div');
+                title.textContent = clip.name || `clip-${idx + 1}`;
+                const meta = document.createElement('div');
+                meta.className = 'clip-item-meta';
+                const frameCount = Array.isArray(clip.frames) ? clip.frames.length : 0;
+                const totalSeconds = (clip.frames || []).reduce((sum, frame) => sum + Math.max(0, Number(frame.duration) || 0), 0);
+                meta.textContent = `FPS ${clip.fps} ｜ 幀數 ${frameCount} ｜ ${totalSeconds.toFixed(2)} 秒`;
+                header.append(title, meta);
+                const actions = document.createElement('div');
+                actions.className = 'clip-item-actions';
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.className = 'ghost-btn';
+                editBtn.textContent = '編輯';
+                editBtn.onclick = () => loadClipToForm(idx);
+                const upBtn = document.createElement('button');
+                upBtn.type = 'button';
+                upBtn.className = 'ghost-btn';
+                upBtn.textContent = '上移';
+                upBtn.disabled = idx === 0;
+                upBtn.onclick = () => moveClip(idx, -1);
+                const downBtn = document.createElement('button');
+                downBtn.type = 'button';
+                downBtn.className = 'ghost-btn';
+                downBtn.textContent = '下移';
+                downBtn.disabled = idx === clipDrafts.length - 1;
+                downBtn.onclick = () => moveClip(idx, 1);
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'ghost-btn danger';
+                deleteBtn.textContent = '刪除';
+                deleteBtn.onclick = () => deleteClip(idx);
+                actions.append(editBtn, upBtn, downBtn, deleteBtn);
+                item.append(header, actions);
+                clipDraftList.appendChild(item);
             });
+        }
+
+        function startNewClipDraft() {
+            editingClipIndex = null;
+            if (clipName) clipName.value = '';
+            if (clipFrames) clipFrames.value = '';
+            if (clipFrameAppend) {
+                clipFrameAppend.checked = false;
+                clipFrameAppend.disabled = true;
+            }
+            selectedClipFrames = [];
+            renderClipFrameDurations();
+            updateClipEditorStatus();
+            renderClipDraftList();
+        }
+
+        function loadClipToForm(index) {
+            const clip = clipDrafts[index];
+            if (!clip) return;
+            editingClipIndex = index;
+            if (clipName) clipName.value = clip.name || '';
+            if (clipFps) clipFps.value = String(Math.max(1, Number(clip.fps || 6)));
+            const fps = Math.max(1, Number(clip.fps || 6));
+            const fallback = 1 / fps;
+            selectedClipFrames = (clip.frames || []).map((frame, idx) => {
+                const src = frame?.src || frame?.dataUrl || frame?.image || '';
+                if (!src) return null;
+                const duration = Math.max(0.01, Number(frame.duration) || fallback);
+                const name = frame?.name || frame?.label || `frame-${idx + 1}`;
+                const custom = Math.abs(duration - fallback) > 0.0001;
+                return { id: uid(), name, src, duration, custom };
+            }).filter(Boolean);
+            if (clipFrames) clipFrames.value = '';
+            if (clipFrameAppend) {
+                clipFrameAppend.checked = false;
+                clipFrameAppend.disabled = selectedClipFrames.length === 0;
+            }
+            renderClipFrameDurations();
+            renderClipDraftList();
+            updateClipEditorStatus();
+        }
+
+        function moveClip(index, delta) {
+            const newIndex = index + delta;
+            if (newIndex < 0 || newIndex >= clipDrafts.length) return;
+            const [clip] = clipDrafts.splice(index, 1);
+            clipDrafts.splice(newIndex, 0, clip);
+            if (editingClipIndex === index) {
+                editingClipIndex = newIndex;
+            } else if (editingClipIndex === newIndex) {
+                editingClipIndex = index;
+            } else if (editingClipIndex > index && editingClipIndex <= newIndex) {
+                editingClipIndex--;
+            } else if (editingClipIndex < index && editingClipIndex >= newIndex) {
+                editingClipIndex++;
+            }
+            renderClipDraftList();
+            updateClipEditorStatus();
+        }
+
+        function deleteClip(index) {
+            if (index < 0 || index >= clipDrafts.length) return;
+            if (!confirm('刪除此動畫？')) return;
+            clipDrafts.splice(index, 1);
+            if (editingClipIndex === index) {
+                startNewClipDraft();
+            } else if (editingClipIndex > index) {
+                editingClipIndex--;
+            }
+            renderClipDraftList();
+            updateClipEditorStatus();
         }
 
         clipFrames.onchange = async () => {
             const files = Array.from(clipFrames.files || []);
-            if (files.length === 0) {
-                selectedClipFrames = [];
-                renderClipFrameDurations();
-                return;
-            }
+            if (files.length === 0) return;
             if (clipFrameList) {
                 clipFrameList.innerHTML = '';
                 const loading = document.createElement('div');
@@ -2986,25 +3417,33 @@
             }
             const fps = Math.max(1, Number(clipFps.value || 6));
             const defaultDuration = 1 / fps;
+            const shouldAppend = !!(clipFrameAppend && clipFrameAppend.checked && selectedClipFrames.length > 0);
             const loaded = [];
             try {
                 for (const file of files) {
                     const src = await fileToDataUrl(file);
                     loaded.push({
                         id: uid(),
-                        name: file.name || `frame-${loaded.length + 1}`,
+                        name: file.name || `frame-${selectedClipFrames.length + loaded.length + 1}`,
                         src,
                         duration: defaultDuration,
                         custom: false
                     });
                 }
-                selectedClipFrames = loaded;
+                if (shouldAppend) {
+                    selectedClipFrames.push(...loaded);
+                } else {
+                    selectedClipFrames = loaded;
+                }
             } catch (err) {
                 console.error('Failed to load clip frames', err);
                 alert('載入動畫幀失敗：' + (err.message || '未知錯誤'));
-                selectedClipFrames = [];
+                if (!shouldAppend) selectedClipFrames = [];
+            } finally {
+                if (clipFrames) clipFrames.value = '';
+                if (clipFrameAppend) clipFrameAppend.checked = false;
+                renderClipFrameDurations();
             }
-            renderClipFrameDurations();
         };
 
         clipFps.onchange = () => {
@@ -3020,74 +3459,279 @@
             if (changed) renderClipFrameDurations();
         };
 
-        renderClipFrameDurations();
+        if (newClip) newClip.onclick = () => {
+            startNewClipDraft();
+        };
 
-        addClip.onclick = async () => {
-            const name = clipName.value.trim();
+        if (addClip) addClip.onclick = () => {
+            const name = clipName?.value.trim();
             if (!name) return alert('請輸入動畫名稱');
-            const fps = Math.max(1, Number(clipFps.value || 6));
-            if (selectedClipFrames.length === 0) return alert('請選擇至少 1 張幀圖片');
+            const fps = Math.max(1, Number(clipFps?.value || 6));
+            if (selectedClipFrames.length === 0) return alert('請加入至少一張動畫幀圖片');
             const fallbackDuration = 1 / fps;
             const frames = selectedClipFrames.map(frame => {
                 const duration = Math.max(0.01, Number(frame.duration) || fallbackDuration);
-                return { src: frame.src, duration };
+                const payload = { src: frame.src, duration };
+                if (frame.name) payload.name = frame.name;
+                return payload;
             }).filter(f => !!f.src);
-            if (frames.length === 0) return alert('請選擇至少 1 張有效的幀圖片');
+            if (frames.length === 0) return alert('請加入至少一張有效的動畫幀');
             const totalSeconds = frames.reduce((sum, frame) => sum + frame.duration, 0);
-            tempClips.push({ name, fps, frames });
-            clipName.value = '';
-            clipFps.value = '6';
-            clipFrames.value = '';
-            selectedClipFrames = [];
-            renderClipFrameDurations();
-            alert(`已加入動畫 ${name}（${frames.length} 幀，總時長 ${totalSeconds.toFixed(2)} 秒）`);
-        };
-
-        addAnimal.onclick = async () => {
-            const name = aName.value.trim(); if (!name) return alert('請輸入動物名稱');
-            let previewDataUrl = undefined;
-            if (aPreview.files && aPreview.files[0]) previewDataUrl = await fileToDataUrl(aPreview.files[0]);
-
-            const aTerrains = Array.from(document.querySelectorAll('#aTerrainChecks input[type=checkbox]'))
-                .filter(x => x.checked).map(x => x.dataset.tid);
-
-            const existing = project.animals.find(a => a.name === name);
-            if (existing) {
-                if (!Array.isArray(existing.clips)) existing.clips = [];
-                existing.previewDataUrl = previewDataUrl || existing.previewDataUrl;
-                existing.clips.push(...tempClips);
-                if (aTerrains.length > 0) existing.spawnTerrains = aTerrains;
-                previewAnimal.value = existing.id;
+            const clipData = {
+                id: (editingClipIndex !== null && clipDrafts[editingClipIndex]?.id) || ('clip_' + uid()),
+                name,
+                fps,
+                frames
+            };
+            if (editingClipIndex === null) {
+                clipDrafts.push(clipData);
+                editingClipIndex = clipDrafts.length - 1;
             } else {
-                const newAn = { id: name.toLowerCase().replace(/\s+/g, '_') + '_' + uid(), name, previewDataUrl, clips: tempClips.slice(), notes: undefined, spawnTerrains: aTerrains };
-                project.animals.push(newAn);
-                previewAnimal.value = newAn.id;
+                clipDrafts[editingClipIndex] = clipData;
             }
-            tempClips = []; aName.value = ''; aPreview.value = ''; document.querySelectorAll('#aTerrainChecks input').forEach(x => x.checked = false);
-            saveProject(); updatePreviewSelectors(); loadPreviewFrames();
+            renderClipDraftList();
+            updateClipEditorStatus();
+            alert(`已儲存動畫 ${name}（${frames.length} 幀，總時長 ${totalSeconds.toFixed(2)} 秒）`);
         };
+
+        function updateAnimalEditorState() {
+            if (animalEditorStatus) {
+                if (editingAnimalId) {
+                    const currentName = aName?.value.trim() || '';
+                    animalEditorStatus.textContent = currentName ? `編輯中：${currentName}` : '編輯既有動物';
+                } else {
+                    animalEditorStatus.textContent = '目前為新增模式';
+                }
+            }
+            if (addAnimal) {
+                addAnimal.textContent = editingAnimalId ? '更新動物' : '新增動物';
+            }
+        }
+
+        if (aName) aName.oninput = () => updateAnimalEditorState();
+
+        if (clearPreview) clearPreview.onclick = () => {
+            editingPreviewDataUrl = null;
+            pendingPreviewDataUrl = null;
+            if (aPreview) aPreview.value = '';
+            updatePreviewThumbnail(null);
+        };
+
+        if (aPreview) aPreview.onchange = async () => {
+            if (!aPreview.files || !aPreview.files[0]) return;
+            try {
+                const dataUrl = await fileToDataUrl(aPreview.files[0]);
+                pendingPreviewDataUrl = dataUrl;
+                updatePreviewThumbnail(dataUrl);
+            } catch (err) {
+                console.error('Failed to load preview image', err);
+                alert('載入預覽圖失敗：' + (err.message || '未知錯誤'));
+            }
+        };
+
+        if (resetAnimal) resetAnimal.onclick = () => {
+            if (editingAnimalId && !confirm('取消編輯並清空表單？')) return;
+            resetAnimalForm();
+        };
+
+        function resetAnimalForm() {
+            editingAnimalId = null;
+            editingPreviewDataUrl = null;
+            pendingPreviewDataUrl = null;
+            if (aName) aName.value = '';
+            if (aPreview) aPreview.value = '';
+            updatePreviewThumbnail(null);
+            clipDrafts = [];
+            selectedClipFrames = [];
+            editingClipIndex = null;
+            if (clipFrames) clipFrames.value = '';
+            if (clipFrameAppend) {
+                clipFrameAppend.checked = false;
+                clipFrameAppend.disabled = true;
+            }
+            renderClipFrameDurations();
+            renderClipDraftList();
+            updateClipEditorStatus();
+            editingAnimalTerrains = new Set();
+            renderAnimalTerrainChecks();
+            updateAnimalEditorState();
+        }
+
+        function startEditAnimal(animalId) {
+            const animal = project.animals.find(a => a.id === animalId);
+            if (!animal) return;
+            editingAnimalId = animal.id;
+            if (aName) aName.value = animal.name || '';
+            editingPreviewDataUrl = animal.previewDataUrl || null;
+            pendingPreviewDataUrl = null;
+            if (aPreview) aPreview.value = '';
+            updatePreviewThumbnail(editingPreviewDataUrl);
+            clipDrafts = (Array.isArray(animal.clips) ? animal.clips : []).map(clip => {
+                const fps = Math.max(1, Number(clip.fps || 6));
+                const fallback = 1 / fps;
+                const frames = (Array.isArray(clip.frames) ? clip.frames : []).map((frame, idx) => {
+                    const src = frame?.src || frame?.dataUrl || frame?.image || '';
+                    if (!src) return null;
+                    const duration = Math.max(0.01, Number(frame.duration) || fallback);
+                    const name = frame?.name || frame?.label || `frame-${idx + 1}`;
+                    return { src, duration, name };
+                }).filter(Boolean);
+                return {
+                    id: clip.id || ('clip_' + uid()),
+                    name: clip.name || '',
+                    fps,
+                    frames
+                };
+            });
+            selectedClipFrames = [];
+            editingClipIndex = null;
+            if (clipFrames) clipFrames.value = '';
+            if (clipFrameAppend) {
+                clipFrameAppend.checked = false;
+                clipFrameAppend.disabled = true;
+            }
+            editingAnimalTerrains = new Set(Array.isArray(animal.spawnTerrains) ? animal.spawnTerrains : []);
+            renderAnimalTerrainChecks();
+            renderClipDraftList();
+            renderClipFrameDurations();
+            updateClipEditorStatus();
+            updateAnimalEditorState();
+            if (previewAnimal) {
+                previewAnimal.value = animal.id;
+                updatePreviewClips();
+            }
+        }
+
+        if (addAnimal) addAnimal.onclick = async () => {
+            const name = aName?.value.trim();
+            if (!name) return alert('請輸入動物名稱');
+            if (!Array.isArray(clipDrafts) || clipDrafts.length === 0) {
+                return alert('請至少儲存一個動畫');
+            }
+            const duplicate = project.animals.some(an => an.name === name && an.id !== editingAnimalId);
+            if (duplicate) return alert('已有同名動物，請更換名稱');
+            const terrainsSelected = Array.from(document.querySelectorAll('#aTerrainChecks input[type=checkbox]'))
+                .filter(el => el.checked)
+                .map(el => el.dataset.tid)
+                .filter(Boolean);
+            editingAnimalTerrains = new Set(terrainsSelected);
+            let previewDataUrl = pendingPreviewDataUrl ?? editingPreviewDataUrl ?? null;
+            if (!previewDataUrl && aPreview?.files && aPreview.files[0]) {
+                previewDataUrl = await fileToDataUrl(aPreview.files[0]);
+            }
+            const clipPayload = [];
+            for (const clip of clipDrafts) {
+                const fps = Math.max(1, Number(clip.fps) || 6);
+                const fallback = 1 / fps;
+                const frames = (clip.frames || []).map(frame => {
+                    const src = frame?.src || '';
+                    if (!src) return null;
+                    const duration = Math.max(0.01, Number(frame.duration) || fallback);
+                    const payload = { src, duration };
+                    if (frame?.name) payload.name = frame.name;
+                    return payload;
+                }).filter(Boolean);
+                if (frames.length === 0) {
+                    alert(`動畫 ${clip.name || '(未命名)'} 需要至少一張幀圖片`);
+                    return;
+                }
+                clipPayload.push({
+                    id: clip.id || ('clip_' + uid()),
+                    name: clip.name || '',
+                    fps,
+                    frames
+                });
+            }
+            let target = editingAnimalId ? project.animals.find(a => a.id === editingAnimalId) : null;
+            const isUpdate = !!target;
+            if (target) {
+                target.name = name;
+                target.previewDataUrl = previewDataUrl || null;
+                target.clips = clipPayload;
+                target.spawnTerrains = terrainsSelected;
+            } else {
+                let baseSlug = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+                if (!baseSlug) baseSlug = 'animal';
+                let newId = baseSlug + '_' + uid();
+                while (project.animals.some(a => a.id === newId)) {
+                    newId = baseSlug + '_' + uid();
+                }
+                target = {
+                    id: newId,
+                    name,
+                    previewDataUrl: previewDataUrl || null,
+                    clips: clipPayload,
+                    spawnTerrains: terrainsSelected
+                };
+                project.animals.push(target);
+                editingAnimalId = target.id;
+            }
+            editingPreviewDataUrl = previewDataUrl || null;
+            pendingPreviewDataUrl = null;
+            if (aPreview) aPreview.value = '';
+            updatePreviewThumbnail(editingPreviewDataUrl);
+            saveProject();
+            updatePreviewSelectors();
+            if (target) {
+                startEditAnimal(target.id);
+            }
+            alert(isUpdate ? '動物已更新' : '動物已新增');
+        };
+
+        renderClipFrameDurations();
+        renderClipDraftList();
+        updateClipEditorStatus();
+        updateAnimalEditorState();
+        updatePreviewThumbnail(editingPreviewDataUrl);
 
         function renderAnimals() {
+            if (!animalList) return;
             upgradeAnimalClips();
             animalList.innerHTML = '';
+            if (!Array.isArray(project.animals) || project.animals.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'creature-empty';
+                empty.textContent = '尚未新增動物';
+                animalList.appendChild(empty);
+                if (createItemCreatureEditor) {
+                    createItemCreatureEditor.refreshAnimals();
+                }
+                return;
+            }
             project.animals.forEach(an => {
                 const card = cloneCard();
                 card.querySelector('img').src = an.previewDataUrl || placeholderIcon();
                 card.querySelector('.title').textContent = an.name;
-                const clipSummary = (an.clips || []).map(c => {
-                    const frames = normalizeClipFrames(c);
-                    const totalSec = frames.reduce((sum, frame) => sum + frame.duration, 0);
-                    return `${c.name}(${frames.length}幀/${totalSec.toFixed(2)}秒)`;
+                const clips = Array.isArray(an.clips) ? an.clips : [];
+                const clipSummary = clips.map(clip => {
+                    const frames = normalizeClipFrames(clip);
+                    const totalSeconds = frames.reduce((sum, frame) => sum + frame.duration, 0);
+                    const fps = Math.max(1, Number(clip.fps || 6));
+                    return `${clip.name || '未命名'}（${frames.length} 幀｜${fps} FPS｜${totalSeconds.toFixed(2)} 秒）`;
                 }).join('，') || '-';
-                const terrainsText = (an.spawnTerrains || []).map(id => project.terrains.find(t => t.id === id)?.name || id).join(', ') || '-';
+                const terrainsText = (an.spawnTerrains || []).map(id => {
+                    return (project.terrains || []).find(t => t.id === id)?.name || id;
+                }).join('、') || '-';
                 card.querySelector('.kvs').innerHTML = `<div>ID</div><div>${an.id}</div><div>動畫</div><div>${clipSummary}</div><div>生成地形</div><div>${terrainsText}</div>`;
-                card.querySelector('.edit').onclick = () => {
-                    const newName = prompt('動物名稱', an.name) || an.name; an.name = newName;
-                    const pick = prompt('以逗號輸入生成地形 ID（不改請留空）', (an.spawnTerrains || []).join(','));
-                    if (pick !== null && pick.trim() !== '') an.spawnTerrains = pick.split(',').map(s => s.trim()).filter(Boolean);
-                    saveProject(); updatePreviewSelectors();
-                };
-                card.querySelector('.del').onclick = () => { if (confirm('刪除此動物？')) { project.animals = project.animals.filter(x => x.id !== an.id); saveProject(); updatePreviewSelectors(); } };
+                const editBtn = card.querySelector('.edit');
+                if (editBtn) {
+                    editBtn.onclick = () => {
+                        switchTab('animals');
+                        startEditAnimal(an.id);
+                    };
+                }
+                const delBtn = card.querySelector('.del');
+                if (delBtn) {
+                    delBtn.onclick = () => {
+                        if (!confirm('刪除此動物？')) return;
+                        project.animals = project.animals.filter(x => x.id !== an.id);
+                        if (editingAnimalId === an.id) {
+                            resetAnimalForm();
+                        }
+                        saveProject();
+                        updatePreviewSelectors();
+                    };
+                }
                 animalList.appendChild(card);
             });
             if (createItemCreatureEditor) {
