@@ -1286,6 +1286,8 @@
                 <div class="grid">
                     <div>
                         <div class="row"><label>來源</label><select id="eSource"></select></div>
+                        <div class="row" id="eClipRow" style="display:none"><label>動畫</label><select id="eClip"></select></div>
+                        <div class="row" id="eFrameRow" style="display:none"><label>幀畫面</label><select id="eFrame"></select></div>
                         <div class="row"><label>名稱</label><input id="eName" type="text" placeholder="敵人或可互動物件名稱" />
                         </div>
                         <div class="row"><label>底圖</label><input id="eImage" type="file" accept="image/*" /></div>
@@ -3808,6 +3810,10 @@
 
         // ----------------------------- Entities / Hitboxes -----------------------------
         const eSource = document.getElementById('eSource');
+        const eClipRow = document.getElementById('eClipRow');
+        const eClipSelect = document.getElementById('eClip');
+        const eFrameRow = document.getElementById('eFrameRow');
+        const eFrameSelect = document.getElementById('eFrame');
         const eName = document.getElementById('eName');
         const eImage = document.getElementById('eImage');
         const eImageRow = eImage?.closest('.row') || null;
@@ -3825,6 +3831,8 @@
         let entitySources = [];
         let currentEntityKey = null;
         let currentEntitySource = null;
+        let currentEntityClipId = null;
+        let currentEntityFrameIndex = 0;
         let pendingNewCustomKey = null;
         let needsEntityUpgradeSave = false;
 
@@ -3879,6 +3887,140 @@
             img.onload = () => drawHitCanvas();
             img.onerror = () => { entityImage = null; drawHitCanvas(); };
             img.src = src;
+        }
+
+        function resetAnimalFrameSelection() {
+            currentEntityClipId = null;
+            currentEntityFrameIndex = 0;
+            if (eClipSelect) eClipSelect.value = '';
+            if (eFrameSelect) eFrameSelect.value = '';
+        }
+
+        function hideAnimalFrameControls() {
+            if (eClipRow) eClipRow.style.display = 'none';
+            if (eFrameRow) eFrameRow.style.display = 'none';
+            if (eClipSelect) eClipSelect.innerHTML = '';
+            if (eFrameSelect) eFrameSelect.innerHTML = '';
+            resetAnimalFrameSelection();
+        }
+
+        function findAnimalById(id) {
+            if (!id) return null;
+            return (project.animals || []).find(an => an && an.id === id) || null;
+        }
+
+        function resolveAnimalFrame(animal, clipId, frameIndex) {
+            if (!animal || !clipId) return null;
+            const clip = (animal.clips || []).find(c => c && c.id === clipId);
+            if (!clip) return null;
+            const frames = normalizeClipFrames(clip);
+            if (!Array.isArray(frames) || frames.length === 0) return null;
+            const idx = Math.max(0, Math.min(frames.length - 1, Number(frameIndex) || 0));
+            const frame = frames[idx];
+            const clipName = clip.name || '未命名';
+            const frameName = frame?.name || `frame-${idx + 1}`;
+            return {
+                clip,
+                frame,
+                frames,
+                clipName,
+                frameName,
+                frameIndex: idx,
+                src: frame?.src || null,
+                label: `${clipName} / #${idx + 1} ${frameName}`
+            };
+        }
+
+        function resolveAnimalFrameRef(animal, frameRef) {
+            if (!frameRef) return null;
+            return resolveAnimalFrame(animal, frameRef.clipId, frameRef.frameIndex);
+        }
+
+        function updateAnimalFrameImage() {
+            if (!currentEntitySource || currentEntitySource.type !== 'animal') return;
+            const animal = findAnimalById(currentEntitySource.sourceId);
+            if (!animal) {
+                loadEntityImage(currentEntitySource.imageSrc || placeholderIcon());
+                return;
+            }
+            const frameInfo = resolveAnimalFrame(animal, currentEntityClipId, currentEntityFrameIndex);
+            if (!frameInfo || !frameInfo.src) {
+                loadEntityImage(getAnimalPreview(animal));
+                return;
+            }
+            currentEntityFrameIndex = frameInfo.frameIndex;
+            if (eFrameSelect && eFrameSelect.value !== String(frameInfo.frameIndex)) {
+                eFrameSelect.value = String(frameInfo.frameIndex);
+            }
+            loadEntityImage(frameInfo.src);
+        }
+
+        function updateAnimalFrameControls(source, { entry = null, preserveSelection = false } = {}) {
+            if (!source || source.type !== 'animal') {
+                hideAnimalFrameControls();
+                return;
+            }
+            const animal = findAnimalById(source.sourceId);
+            if (!animal) {
+                hideAnimalFrameControls();
+                loadEntityImage(source?.imageSrc || placeholderIcon());
+                return;
+            }
+            const clipOptions = (animal.clips || [])
+                .map(clip => ({ clip, frames: normalizeClipFrames(clip) }))
+                .filter(opt => Array.isArray(opt.frames) && opt.frames.length > 0);
+            if (clipOptions.length === 0) {
+                hideAnimalFrameControls();
+                loadEntityImage(getAnimalPreview(animal));
+                return;
+            }
+            if (eClipRow) eClipRow.style.display = '';
+            if (eFrameRow) eFrameRow.style.display = '';
+            if (eClipSelect) {
+                eClipSelect.innerHTML = '';
+                clipOptions.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.clip.id;
+                    const clipName = opt.clip.name || '未命名';
+                    option.textContent = `${clipName}（${opt.frames.length} 幀）`;
+                    eClipSelect.appendChild(option);
+                });
+            }
+            let clipId = currentEntityClipId;
+            if (preserveSelection && clipOptions.some(opt => opt.clip.id === clipId)) {
+                // keep current selection
+            } else if (entry?.frameRef && clipOptions.some(opt => opt.clip.id === entry.frameRef.clipId)) {
+                clipId = entry.frameRef.clipId;
+            } else {
+                clipId = clipOptions[0].clip.id;
+            }
+            currentEntityClipId = clipId;
+            if (eClipSelect) eClipSelect.value = clipId;
+
+            const clipOpt = clipOptions.find(opt => opt.clip.id === clipId) || clipOptions[0];
+            const frames = clipOpt.frames;
+            if (eFrameRow) eFrameRow.style.display = frames.length > 0 ? '' : 'none';
+            if (eFrameSelect) {
+                eFrameSelect.innerHTML = '';
+                frames.forEach((frame, idx) => {
+                    const option = document.createElement('option');
+                    option.value = String(idx);
+                    const frameName = frame?.name || `frame-${idx + 1}`;
+                    option.textContent = `#${idx + 1} ${frameName}`;
+                    eFrameSelect.appendChild(option);
+                });
+            }
+            let frameIndex = currentEntityFrameIndex;
+            if (preserveSelection && Number.isInteger(frameIndex) && frames[frameIndex]) {
+                // keep current frame index
+            } else if (entry?.frameRef && Number.isInteger(entry.frameRef.frameIndex) && frames[entry.frameRef.frameIndex]) {
+                frameIndex = entry.frameRef.frameIndex;
+            } else {
+                frameIndex = 0;
+            }
+            currentEntityFrameIndex = frameIndex;
+            if (eFrameSelect) eFrameSelect.value = String(frameIndex);
+            updateAnimalFrameImage();
         }
 
         function updateImageInputState(type) {
@@ -3948,6 +4090,21 @@
                 if (!an || !an.id) return;
                 const key = `animal:${an.id}`;
                 const entry = entries.get(key);
+                let imageSrc = getAnimalPreview(an);
+                let frameLabel = '';
+                if (entry?.frameRef) {
+                    const frameInfo = resolveAnimalFrameRef(an, entry.frameRef);
+                    if (frameInfo) {
+                        if (frameInfo.src) imageSrc = frameInfo.src;
+                        frameLabel = frameInfo.label;
+                    }
+                    if (!frameLabel) {
+                        const idx = Number(entry.frameRef.frameIndex);
+                        const displayIndex = Number.isFinite(idx) ? idx + 1 : '?';
+                        const clipHint = entry.frameRef.clipId ? entry.frameRef.clipId : '動畫';
+                        frameLabel = `${clipHint} / #${displayIndex}`;
+                    }
+                }
                 sources.push({
                     key,
                     type: 'animal',
@@ -3955,7 +4112,8 @@
                     baseName: an.name || an.id,
                     displayName: (entry && entry.name) || an.name || an.id,
                     categoryLabel: '生物',
-                    imageSrc: getAnimalPreview(an),
+                    imageSrc,
+                    frameLabel,
                     entry
                 });
                 used.add(key);
@@ -3965,7 +4123,22 @@
                 if (used.has(key)) return;
                 const type = entry.sourceType || (key.startsWith('custom:') ? 'custom' : 'unknown');
                 const sourceId = entry.sourceId || key.replace(/^custom:/, '');
-                const imageSrc = entry.imageDataUrl || entry.imagePath || placeholderIcon();
+                let imageSrc = entry.imageDataUrl || entry.imagePath || placeholderIcon();
+                let frameLabel = '';
+                if (type === 'animal') {
+                    const animal = findAnimalById(sourceId);
+                    const frameInfo = animal ? resolveAnimalFrameRef(animal, entry.frameRef) : null;
+                    if (frameInfo) {
+                        if (frameInfo.src) imageSrc = frameInfo.src;
+                        frameLabel = frameInfo.label;
+                    }
+                }
+                if (!frameLabel && entry.frameRef) {
+                    const idx = Number(entry.frameRef.frameIndex);
+                    const displayIndex = Number.isFinite(idx) ? idx + 1 : '?';
+                    const clipHint = entry.frameRef.clipId ? entry.frameRef.clipId : '動畫';
+                    frameLabel = `${clipHint} / #${displayIndex}`;
+                }
                 sources.push({
                     key,
                     type,
@@ -3974,6 +4147,7 @@
                     displayName: entry.name || sourceId || key,
                     categoryLabel: type === 'custom' ? '自訂' : '未知',
                     imageSrc,
+                    frameLabel,
                     entry,
                     orphan: type !== 'custom'
                 });
@@ -3994,7 +4168,8 @@
             const hitCount = src.entry && Array.isArray(src.entry.hitboxes) ? src.entry.hitboxes.length : 0;
             const hitText = hitCount > 0 ? `（${hitCount} 框）` : '（尚未設定）';
             const idText = src.sourceId ? ` [${src.sourceId}]` : '';
-            return `[${typeLabel}] ${src.baseName}${idText} ${hitText}`;
+            const frameText = src.frameLabel ? `｜幀：${src.frameLabel}` : '';
+            return `[${typeLabel}] ${src.baseName}${idText} ${hitText}${frameText}`;
         }
 
         function refreshEntitySourceOptions() {
@@ -4043,6 +4218,7 @@
                 kvs.push('<div>類型</div><div>' + typeLabel + '</div>');
                 if (src.sourceId) kvs.push('<div>來源ID</div><div>' + src.sourceId + '</div>');
                 if (src.type === 'item' && src.categoryLabel) kvs.push('<div>分類</div><div>' + src.categoryLabel + '</div>');
+                if (src.frameLabel) kvs.push('<div>動畫幀</div><div>' + src.frameLabel + '</div>');
                 const hitCount = src.entry && Array.isArray(src.entry.hitboxes) ? src.entry.hitboxes.length : 0;
                 kvs.push('<div>碰撞框</div><div>' + (hitCount > 0 ? `${hitCount} 個` : '尚未設定') + '</div>');
                 if (src.orphan) kvs.push('<div>狀態</div><div>來源不存在</div>');
@@ -4073,16 +4249,17 @@
             });
         }
 
-        function selectEntitySource(key, { resetHitboxes = true } = {}) {
+        function selectEntitySource(key, { resetHitboxes = true, preserveFrameSelection = false } = {}) {
             if (!key) {
                 currentEntityKey = null;
                 currentEntitySource = null;
                 pendingNewCustomKey = null;
                 updateImageInputState(null);
+                hideAnimalFrameControls();
                 hitboxes = [];
                 entityImage = null;
                 entityImageSource = null;
-                eImage.value = '';
+                if (eImage) eImage.value = '';
                 drawHitCanvas();
                 renderHitList();
                 refreshEntitySourceOptions();
@@ -4092,8 +4269,10 @@
             currentEntityKey = key;
             const source = entitySources.find(s => s.key === key) || null;
             currentEntitySource = source;
+            const entry = findEntityEntryByKey(key);
             if (!source) {
                 updateImageInputState(null);
+                hideAnimalFrameControls();
                 hitboxes = [];
                 entityImage = null;
                 entityImageSource = null;
@@ -4103,11 +4282,14 @@
                 return;
             }
             updateImageInputState(source.type);
-            const entry = findEntityEntryByKey(key);
-            if (source.type === 'custom') {
+            if (source.type === 'animal') {
+                updateAnimalFrameControls(source, { entry, preserveSelection: preserveFrameSelection });
+            } else if (source.type === 'custom') {
+                hideAnimalFrameControls();
                 const imgSrc = entry?.imageDataUrl || entry?.imagePath || null;
                 loadEntityImage(imgSrc);
             } else {
+                hideAnimalFrameControls();
                 const imgSrc = source.imageSrc || placeholderIcon();
                 if (entityImageSource !== imgSrc) loadEntityImage(imgSrc);
             }
@@ -4127,6 +4309,7 @@
             currentEntityKey = newKey;
             currentEntitySource = { key: newKey, type: 'custom', baseName: '', displayName: '', sourceId: newKey.replace('custom:', '') };
             updateImageInputState('custom');
+            hideAnimalFrameControls();
             eName.value = '';
             eImage.value = '';
             hitboxes = [];
@@ -4148,6 +4331,25 @@
                     return;
                 }
                 selectEntitySource(eSource.value);
+            };
+        }
+
+        if (eClipSelect) {
+            eClipSelect.onchange = () => {
+                if (!currentEntitySource || currentEntitySource.type !== 'animal') return;
+                currentEntityClipId = eClipSelect.value || null;
+                currentEntityFrameIndex = 0;
+                const entry = findEntityEntryByKey(currentEntityKey);
+                updateAnimalFrameControls(currentEntitySource, { entry, preserveSelection: true });
+            };
+        }
+
+        if (eFrameSelect) {
+            eFrameSelect.onchange = () => {
+                if (!currentEntitySource || currentEntitySource.type !== 'animal') return;
+                const idx = Number(eFrameSelect.value);
+                currentEntityFrameIndex = Number.isFinite(idx) ? idx : 0;
+                updateAnimalFrameImage();
             };
         }
 
@@ -4240,6 +4442,19 @@
             const defaultName = currentEntitySource?.displayName || currentEntitySource?.baseName || sourceId || '';
             const name = eName.value.trim() || defaultName;
             if (!name) return alert('請輸入生物名稱');
+            let frameInfo = null;
+            if (sourceType === 'animal') {
+                if (!currentEntityClipId) {
+                    alert('請先選擇要使用的動畫幀');
+                    return;
+                }
+                const animal = findAnimalById(sourceId);
+                frameInfo = animal ? resolveAnimalFrame(animal, currentEntityClipId, currentEntityFrameIndex) : null;
+                if (!frameInfo) {
+                    alert('選擇的動畫幀無法使用，請重新選擇');
+                    return;
+                }
+            }
             if (!entityImage) return alert('請先載入底圖');
 
             let entry = findEntityEntryByKey(currentEntityKey);
@@ -4259,10 +4474,18 @@
             entry.name = name;
             entry.hitboxes = JSON.parse(JSON.stringify(hitboxes));
             entry.updatedAt = new Date().toISOString();
-            if (sourceType === 'custom') {
+            if (sourceType === 'animal') {
+                entry.frameRef = {
+                    clipId: currentEntityClipId,
+                    frameIndex: frameInfo?.frameIndex ?? currentEntityFrameIndex ?? 0
+                };
+                delete entry.imageDataUrl;
+            } else if (sourceType === 'custom') {
                 entry.imageDataUrl = entityImageSource || (entityImage?.src ?? entry.imageDataUrl ?? null);
+                delete entry.frameRef;
             } else {
                 delete entry.imageDataUrl;
+                delete entry.frameRef;
             }
             pendingNewCustomKey = null;
             saveProject();
@@ -4296,6 +4519,7 @@
                     currentEntitySource = null;
                     currentEntityKey = null;
                     updateImageInputState(null);
+                    hideAnimalFrameControls();
                     hitboxes = [];
                     entityImage = null;
                     entityImageSource = null;
@@ -4303,7 +4527,7 @@
                     renderHitList();
                 } else {
                     currentEntitySource = source;
-                    if (source.type !== 'custom') {
+                    if (source.type !== 'animal') {
                         const imgSrc = source.imageSrc || placeholderIcon();
                         if (entityImageSource !== imgSrc) loadEntityImage(imgSrc);
                     }
@@ -4311,13 +4535,22 @@
             }
             if (pendingNewCustomKey) {
                 updateImageInputState('custom');
+                hideAnimalFrameControls();
             } else if (currentEntitySource) {
                 updateImageInputState(currentEntitySource.type);
+                if (currentEntitySource.type !== 'animal') {
+                    hideAnimalFrameControls();
+                }
             } else {
                 updateImageInputState(null);
+                hideAnimalFrameControls();
             }
             refreshEntitySourceOptions();
             renderEntityCards();
+            if (!pendingNewCustomKey && currentEntitySource && currentEntitySource.type === 'animal') {
+                const entry = findEntityEntryByKey(currentEntityKey);
+                updateAnimalFrameControls(currentEntitySource, { entry, preserveSelection: true });
+            }
         }
 
         if (needsEntityUpgradeSave) {
