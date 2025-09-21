@@ -660,14 +660,23 @@
             }
         }
 
-        .items-section {
-            display: grid;
-            grid-template-columns: minmax(220px, 260px) 1fr;
-            gap: 20px;
-            align-items: flex-start;
+        .items-panel {
+            min-width: 0;
         }
 
-        .item-nav-panel {
+        .items-panel .grid>div:last-child {
+            min-width: 0;
+        }
+
+        .item-browser {
+            display: grid;
+            grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+            gap: 18px;
+            align-items: flex-start;
+            min-height: 0;
+        }
+
+        .item-browser-nav-wrap {
             display: flex;
             flex-direction: column;
             gap: 14px;
@@ -678,6 +687,7 @@
             box-shadow: var(--shadow);
             position: sticky;
             top: 84px;
+            max-height: clamp(320px, calc(100vh - 140px), 760px);
         }
 
         .item-nav-header h2 {
@@ -691,37 +701,28 @@
             color: var(--muted);
         }
 
-        .item-nav-scroll {
-            max-height: 600px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-
         .item-browser-nav {
             display: flex;
             flex-direction: column;
             gap: 12px;
-        }
-
-        .items-panel {
-            min-width: 0;
-        }
-
-        .items-panel .grid>div:last-child {
-            min-width: 0;
+            overflow-y: auto;
+            padding-right: 4px;
+            min-height: 0;
+            max-height: clamp(240px, calc(100vh - 196px), 600px);
+            flex: 1;
         }
 
         @media (max-width:900px) {
-            .items-section {
+            .item-browser {
                 grid-template-columns: 1fr;
             }
 
-            .item-nav-panel {
+            .item-browser-nav-wrap {
                 position: static;
-                padding: 14px;
+                max-height: none;
             }
 
-            .item-nav-scroll {
+            .item-browser-nav {
                 max-height: none;
                 overflow: visible;
             }
@@ -780,6 +781,7 @@
 
         .item-browser-detail {
             min-height: 420px;
+            min-width: 0;
         }
 
         .item-card {
@@ -966,43 +968,41 @@
         </section>
 
         <!-- Items -->
-        <section class="items-section" data-tab="items">
-            <aside class="item-nav-panel">
-                <div class="item-nav-header">
-                    <h2>物品列表</h2>
-                    <div class="item-nav-sub" id="itemNavSummary">依分類快速瀏覽</div>
-                </div>
-                <div class="item-nav-scroll">
-                    <div class="item-browser-nav" id="itemNav"></div>
-                </div>
-            </aside>
-            <div class="panel items-panel">
-                <div class="head">
-                    <h2>Items 物品 → 可放置地形</h2>
-                </div>
-                <div class="body">
-                    <div class="grid">
-                        <div>
-                            <div class="row"><label>名稱</label><input id="iName" type="text" placeholder="紅寶石礦 / 木箱 / 陷阱" />
-                            </div>
-                            <div class="row"><label>分類</label>
-                                <select id="iCategory"></select>
-                            </div>
-                            <div class="row"><label>圖片</label><input id="iIcon" type="file" accept="image/*" /></div>
-                            <div class="row"><label>適用地形</label>
-                                <div id="iTerrainChecks" class="checklist"></div>
-                            </div>
-                            <div class="row"><label>備註</label><textarea id="iNote" placeholder="限制、互動規則等…"></textarea></div>
-                            <div class="row item-drop-row"><label>掉落設定</label>
-                                <div id="iDropEditor" class="drop-editor-wrap"></div>
-                            </div>
-                            <div class="row creature-row" id="iCreatureFields">
-                                <label>生物設定</label>
-                                <div class="creature-editor-host" id="iCreatureEditorHost"></div>
-                            </div>
-                            <div class="row"><button id="addItem" class="btn">新增物品</button></div>
+        <section class="panel items-panel" data-tab="items">
+            <div class="head">
+                <h2>Items 物品 → 可放置地形</h2>
+            </div>
+            <div class="body">
+                <div class="grid">
+                    <div>
+                        <div class="row"><label>名稱</label><input id="iName" type="text" placeholder="紅寶石礦 / 木箱 / 陷阱" />
                         </div>
-                        <div>
+                        <div class="row"><label>分類</label>
+                            <select id="iCategory"></select>
+                        </div>
+                        <div class="row"><label>圖片</label><input id="iIcon" type="file" accept="image/*" /></div>
+                        <div class="row"><label>適用地形</label>
+                            <div id="iTerrainChecks" class="checklist"></div>
+                        </div>
+                        <div class="row"><label>備註</label><textarea id="iNote" placeholder="限制、互動規則等…"></textarea></div>
+                        <div class="row item-drop-row"><label>掉落設定</label>
+                            <div id="iDropEditor" class="drop-editor-wrap"></div>
+                        </div>
+                        <div class="row creature-row" id="iCreatureFields">
+                            <label>生物設定</label>
+                            <div class="creature-editor-host" id="iCreatureEditorHost"></div>
+                        </div>
+                        <div class="row"><button id="addItem" class="btn">新增物品</button></div>
+                    </div>
+                    <div>
+                        <div class="item-browser">
+                            <div class="item-browser-nav-wrap">
+                                <div class="item-nav-header">
+                                    <h2>物品列表</h2>
+                                    <div class="item-nav-sub" id="itemNavSummary">依分類快速瀏覽</div>
+                                </div>
+                                <div class="item-browser-nav" id="itemNav"></div>
+                            </div>
                             <div class="item-browser-detail" id="itemDetail"></div>
                         </div>
                     </div>
