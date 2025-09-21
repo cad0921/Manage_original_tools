@@ -660,94 +660,155 @@
             }
         }
 
-        .item-group {
-            border: 1px solid #1f2755;
-            border-radius: 14px;
-            background: #0e1533;
-            box-shadow: var(--shadow);
-            padding: 0 12px 12px;
-            color: var(--text);
-        }
-
-        .item-group[open] {
-            border-color: #7aa2ff;
-            background: linear-gradient(180deg, rgba(40, 60, 110, .35), rgba(12, 18, 46, .95)), #0e1533;
-        }
-
-        .item-summary {
-            list-style: none;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 0;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .item-summary::-webkit-details-marker {
-            display: none;
-        }
-
-        .item-summary::after {
-            content: '\25BC';
-            font-size: 12px;
-            color: var(--muted);
-            transition: transform .2s ease;
-        }
-
-        .item-group[open] .item-summary::after {
-            transform: rotate(-180deg);
-        }
-
-        .item-summary .meta {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .item-entries {
+        .items-section {
             display: grid;
-            gap: 10px;
+            grid-template-columns: minmax(220px, 260px) 1fr;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .item-nav-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            background: linear-gradient(180deg, rgba(18, 24, 50, .92), rgba(14, 20, 46, .95));
+            border: 1px solid #1d2550;
+            border-radius: var(--br);
+            padding: 18px;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 84px;
+        }
+
+        .item-nav-header h2 {
+            margin: 0;
+            font-size: 16px;
+            color: #c9d5ff;
+        }
+
+        .item-nav-sub {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .item-nav-scroll {
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .item-browser-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .items-panel {
+            min-width: 0;
+        }
+
+        .items-panel .grid>div:last-child {
+            min-width: 0;
+        }
+
+        @media (max-width:900px) {
+            .items-section {
+                grid-template-columns: 1fr;
+            }
+
+            .item-nav-panel {
+                position: static;
+                padding: 14px;
+            }
+
+            .item-nav-scroll {
+                max-height: none;
+                overflow: visible;
+            }
+        }
+
+        .item-nav-group {
+            border: 1px solid #1f2755;
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(14, 20, 45, .9), rgba(10, 18, 44, .95));
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .item-nav-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #9fb6ff;
+            letter-spacing: .5px;
+        }
+
+        .item-nav-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .item-nav-item {
+            border: 1px solid #23306a;
+            border-radius: 9px;
+            background: #0a1232;
+            color: var(--text);
+            padding: 8px 10px;
+            text-align: left;
+            font: inherit;
+            cursor: pointer;
+            transition: border-color .15s ease, background-color .15s ease, transform .15s ease;
+        }
+
+        .item-nav-item:hover {
+            border-color: #3d57b8;
+            background: #131d49;
+        }
+
+        .item-nav-item.active {
+            border-color: #7aa2ff;
+            background: #162356;
+            box-shadow: inset 0 0 0 1px rgba(122, 162, 255, .3);
+        }
+
+        .item-nav-empty {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .item-browser-detail {
+            min-height: 420px;
         }
 
         .item-card {
             border: 1px solid #23306a;
             border-radius: 12px;
             background: #0a1232;
-            padding: 0 12px 12px;
+            padding: 16px;
+            display: grid;
+            gap: 16px;
         }
 
-        .item-card[open] {
-            border-color: #7aa2ff;
-        }
-
-        .item-card summary {
-            list-style: none;
+        .item-card-header {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px 0;
-            cursor: pointer;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .item-card-title {
+            font-size: 18px;
             font-weight: 600;
+            margin: 0;
         }
 
-        .item-card summary::-webkit-details-marker {
-            display: none;
-        }
-
-        .item-card summary::after {
-            content: '\25B6';
-            font-size: 12px;
+        .item-card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 13px;
             color: var(--muted);
-            transition: transform .2s ease;
-        }
-
-        .item-card[open] summary::after {
-            transform: rotate(90deg);
         }
 
         .item-body {
@@ -905,34 +966,45 @@
         </section>
 
         <!-- Items -->
-        <section class="panel" data-tab="items">
-            <div class="head">
-                <h2>Items 物品 → 可放置地形</h2>
-            </div>
-            <div class="body">
-                <div class="grid">
-                    <div>
-                        <div class="row"><label>名稱</label><input id="iName" type="text" placeholder="紅寶石礦 / 木箱 / 陷阱" />
+        <section class="items-section" data-tab="items">
+            <aside class="item-nav-panel">
+                <div class="item-nav-header">
+                    <h2>物品列表</h2>
+                    <div class="item-nav-sub" id="itemNavSummary">依分類快速瀏覽</div>
+                </div>
+                <div class="item-nav-scroll">
+                    <div class="item-browser-nav" id="itemNav"></div>
+                </div>
+            </aside>
+            <div class="panel items-panel">
+                <div class="head">
+                    <h2>Items 物品 → 可放置地形</h2>
+                </div>
+                <div class="body">
+                    <div class="grid">
+                        <div>
+                            <div class="row"><label>名稱</label><input id="iName" type="text" placeholder="紅寶石礦 / 木箱 / 陷阱" />
+                            </div>
+                            <div class="row"><label>分類</label>
+                                <select id="iCategory"></select>
+                            </div>
+                            <div class="row"><label>圖片</label><input id="iIcon" type="file" accept="image/*" /></div>
+                            <div class="row"><label>適用地形</label>
+                                <div id="iTerrainChecks" class="checklist"></div>
+                            </div>
+                            <div class="row"><label>備註</label><textarea id="iNote" placeholder="限制、互動規則等…"></textarea></div>
+                            <div class="row item-drop-row"><label>掉落設定</label>
+                                <div id="iDropEditor" class="drop-editor-wrap"></div>
+                            </div>
+                            <div class="row creature-row" id="iCreatureFields">
+                                <label>生物設定</label>
+                                <div class="creature-editor-host" id="iCreatureEditorHost"></div>
+                            </div>
+                            <div class="row"><button id="addItem" class="btn">新增物品</button></div>
                         </div>
-                        <div class="row"><label>分類</label>
-                            <select id="iCategory"></select>
+                        <div>
+                            <div class="item-browser-detail" id="itemDetail"></div>
                         </div>
-                        <div class="row"><label>圖片</label><input id="iIcon" type="file" accept="image/*" /></div>
-                        <div class="row"><label>適用地形</label>
-                            <div id="iTerrainChecks" class="checklist"></div>
-                        </div>
-                        <div class="row"><label>備註</label><textarea id="iNote" placeholder="限制、互動規則等…"></textarea></div>
-                        <div class="row item-drop-row"><label>掉落設定</label>
-                            <div id="iDropEditor" class="drop-editor-wrap"></div>
-                        </div>
-                        <div class="row creature-row" id="iCreatureFields">
-                            <label>生物設定</label>
-                            <div class="creature-editor-host" id="iCreatureEditorHost"></div>
-                        </div>
-                        <div class="row"><button id="addItem" class="btn">新增物品</button></div>
-                    </div>
-                    <div>
-                        <div class="list" id="itemList"></div>
                     </div>
                 </div>
             </div>
@@ -1053,6 +1125,8 @@
         const itemApiUrl = 'item_api.php';
         let pendingOpenItemId = null;
         let pendingOpenCategoryId = null;
+        let selectedItemId = null;
+        let selectedCategoryId = null;
         const defaultItemCategories = [
             { id: 'decor', label: '裝飾' },
             { id: 'interactive', label: '可互動' },
@@ -1507,7 +1581,9 @@
         const iIcon = document.getElementById('iIcon');
         const iNote = document.getElementById('iNote');
         const addItem = document.getElementById('addItem');
-        const itemList = document.getElementById('itemList');
+        const itemNav = document.getElementById('itemNav');
+        const itemDetail = document.getElementById('itemDetail');
+        const itemNavSummary = document.getElementById('itemNavSummary');
 
         async function fileToDataUrl(file) {
             return await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
@@ -2395,26 +2471,32 @@
             return select;
         }
 
-        function buildItemCard(item, openItems, dropOptions) {
+        function buildItemCard(item, dropOptions) {
             const terrainsLookup = new Map((project.terrains || []).map(t => [t.id, t.name]));
-            const terrainNames = (item.terrains || []).map(id => terrainsLookup.get(id) || id);
+            const formatTerrainList = (ids) => {
+                const names = (ids || []).map(id => terrainsLookup.get(id) || id).filter(Boolean);
+                return names.length > 0 ? names.join(', ') : '—';
+            };
+
             let creatureEditor = null;
 
-            const card = document.createElement('details');
+            const card = document.createElement('div');
             card.className = 'item-card';
             card.dataset.itemId = item.id;
-            if (openItems.has(item.id)) card.open = true;
 
-            const summary = document.createElement('summary');
-            const terrainText = terrainNames.length > 0 ? terrainNames.join(', ') : '-';
-            const titleSpan = document.createElement('span');
-            titleSpan.textContent = item.name;
+            const header = document.createElement('div');
+            header.className = 'item-card-header';
+
+            const title = document.createElement('h3');
+            title.className = 'item-card-title';
+            title.textContent = item.name || item.id;
+
             const meta = document.createElement('div');
-            meta.className = 'meta';
+            meta.className = 'item-card-meta';
             const idSpan = document.createElement('span');
             idSpan.textContent = `ID: ${item.id}`;
             const terrainSpan = document.createElement('span');
-            terrainSpan.textContent = `地形：${terrainText}`;
+            terrainSpan.textContent = `地形：${formatTerrainList(item.terrains || [])}`;
             const dropMeta = document.createElement('span');
             dropMeta.className = 'item-drop-meta';
             dropMeta.textContent = `掉落：${formatDropSummary(item.drops, dropOptions)}`;
@@ -2422,8 +2504,8 @@
             creatureMeta.className = 'item-creature-meta';
             creatureMeta.style.display = 'none';
             meta.append(idSpan, terrainSpan, dropMeta, creatureMeta);
-            summary.append(titleSpan, meta);
-            card.appendChild(summary);
+            header.append(title, meta);
+            card.appendChild(header);
 
             const body = document.createElement('div');
             body.className = 'item-body';
@@ -2434,6 +2516,13 @@
             const nameRow = document.createElement('div'); nameRow.className = 'row';
             const nameLabel = document.createElement('label'); nameLabel.textContent = '名稱';
             const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.value = item.name;
+            nameInput.addEventListener('input', () => {
+                title.textContent = nameInput.value || item.id;
+            });
+            nameInput.addEventListener('blur', () => {
+                nameInput.value = nameInput.value.trim();
+                title.textContent = nameInput.value || item.id;
+            });
             nameRow.appendChild(nameLabel); nameRow.appendChild(nameInput);
 
             const catRow = document.createElement('div'); catRow.className = 'row';
@@ -2489,14 +2578,24 @@
                 }
                 updateCreatureMeta();
             };
-            catSelect.addEventListener('change', handleCategoryToggle);
+            catSelect.addEventListener('change', () => {
+                selectedCategoryId = catSelect.value;
+                handleCategoryToggle();
+            });
             handleCategoryToggle();
 
             const terrainRow = document.createElement('div'); terrainRow.className = 'row';
             const terrainLabel = document.createElement('label'); terrainLabel.textContent = '適用地形';
             const terrainWrap = document.createElement('div'); terrainWrap.className = 'checklist';
             populateTerrainChecklist(terrainWrap, item.terrains || []);
-            terrainRow.appendChild(terrainLabel); terrainRow.appendChild(terrainWrap);
+            const updateTerrainMeta = () => {
+                const selected = Array.from(terrainWrap.querySelectorAll('input[type=checkbox]:checked')).map(x => x.dataset.tid);
+                terrainSpan.textContent = `地形：${formatTerrainList(selected)}`;
+            };
+            terrainWrap.addEventListener('change', updateTerrainMeta);
+            updateTerrainMeta();
+            terrainRow.appendChild(terrainLabel);
+            terrainRow.appendChild(terrainWrap);
 
             const actionsRow = document.createElement('div'); actionsRow.className = 'item-actions';
             const saveBtn = document.createElement('button'); saveBtn.className = 'btn'; saveBtn.textContent = '儲存變更';
@@ -2517,36 +2616,24 @@
                 imageSection.appendChild(img);
 
                 const metaWrap = document.createElement('div'); metaWrap.className = 'item-image-meta';
-                const labelInput = document.createElement('input');
-                labelInput.type = 'text';
-                labelInput.value = item.image.label || item.name;
-                labelInput.placeholder = '圖片顯示名稱';
-
-                const toggle = document.createElement('label'); toggle.className = 'terrain-image-toggle';
-                const renameCheckbox = document.createElement('input'); renameCheckbox.type = 'checkbox';
-                toggle.appendChild(renameCheckbox);
-                toggle.append(' 同步修改檔案名稱');
-
-                const meta = document.createElement('div'); meta.className = 'small';
-                const uploadedAt = item.image.uploadedAt ? new Date(item.image.uploadedAt).toLocaleString() : '';
-                meta.textContent = `檔案：${item.image.filename}${uploadedAt ? `｜上傳：${uploadedAt}` : ''}`;
-
+                const labelInput = document.createElement('input'); labelInput.type = 'text'; labelInput.value = item.image.label || item.name;
                 const renameBtn = document.createElement('button'); renameBtn.className = 'btn secondary'; renameBtn.textContent = '更新圖片名稱';
-
-                metaWrap.append(labelInput, toggle, meta, renameBtn);
+                const metaInfo = document.createElement('div');
+                const uploadedAt = item.image.uploadedAt ? new Date(item.image.uploadedAt).toLocaleString() : '';
+                metaInfo.textContent = `檔案：${item.image.filename}${uploadedAt ? `｜上傳：${uploadedAt}` : ''}`;
+                metaWrap.append(labelInput, renameBtn, metaInfo);
                 imageSection.appendChild(metaWrap);
 
-                renameBtn.onclick = async (e) => {
-                    e.preventDefault();
+                renameBtn.onclick = async () => {
                     const label = labelInput.value.trim();
-                    if (label === '') return alert('名稱不可為空');
+                    if (!label) return alert('圖片名稱不可為空');
                     const original = renameBtn.textContent;
                     renameBtn.disabled = true;
                     renameBtn.textContent = '更新中...';
                     const formData = new FormData();
                     formData.append('action', 'update');
                     formData.append('id', item.id);
-                    formData.append('imageMeta', JSON.stringify({ label, renameFile: renameCheckbox.checked }));
+                    formData.append('imageLabel', label);
                     try {
                         const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
                         const data = await res.json();
@@ -2592,6 +2679,8 @@
                     }
                 }
                 try {
+                    selectedItemId = item.id;
+                    selectedCategoryId = catSelect.value;
                     const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
                     const data = await res.json();
                     if (!res.ok || data.status !== 'ok') throw new Error(data.message || '儲存失敗');
@@ -2619,6 +2708,7 @@
                     formData.append('id', item.id);
                     formData.append('image', input.files[0]);
                     try {
+                        selectedItemId = item.id;
                         const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
                         const data = await res.json();
                         if (!res.ok || data.status !== 'ok') throw new Error(data.message || '上傳失敗');
@@ -2648,6 +2738,7 @@
                 formData.append('id', item.id);
                 formData.append('removeImage', 'true');
                 try {
+                    selectedItemId = item.id;
                     const res = await fetch(itemApiUrl, { method: 'POST', body: formData });
                     const data = await res.json();
                     if (!res.ok || data.status !== 'ok') throw new Error(data.message || '移除失敗');
@@ -2688,65 +2779,118 @@
         }
 
         function renderItems() {
-            if (!itemList) return;
+            if (!itemNav || !itemDetail) return;
             renderItemCategoryOptions();
             const dropOptions = getDropSourceOptions();
             if (createItemDropEditor) createItemDropEditor.setSourceOptions(dropOptions);
-            const openGroups = new Set(Array.from(itemList.querySelectorAll('.item-group[open]')).map(el => el.dataset.catId));
-            const openItems = new Set(Array.from(itemList.querySelectorAll('.item-card[open]')).map(el => el.dataset.itemId));
 
-            if (pendingOpenCategoryId) openGroups.add(pendingOpenCategoryId);
-            if (pendingOpenItemId) openItems.add(pendingOpenItemId);
-
-            itemList.innerHTML = '';
+            if (pendingOpenItemId) selectedItemId = pendingOpenItemId;
+            if (pendingOpenCategoryId) selectedCategoryId = pendingOpenCategoryId;
 
             ensureItemCategories(project.itemCategories);
             const categories = (project.itemCategories || []).slice();
-            const map = new Map(categories.map(cat => [cat.id, []]));
+            const itemsByCategory = new Map(categories.map(cat => [cat.id, []]));
             const uncategorized = [];
+            const allItems = [];
 
             (project.items || []).forEach(item => {
-                if (map.has(item.categoryId)) {
-                    map.get(item.categoryId).push(item);
+                if (!item || !item.id) return;
+                allItems.push(item);
+                if (itemsByCategory.has(item.categoryId)) {
+                    itemsByCategory.get(item.categoryId).push(item);
                 } else {
                     uncategorized.push(item);
                 }
             });
 
-            const buildGroup = (catId, label, items) => {
-                const group = document.createElement('details');
-                group.className = 'item-group';
-                group.dataset.catId = catId;
-                if (openGroups.has(catId)) group.open = true;
+            if (itemNavSummary) {
+                const total = allItems.length;
+                itemNavSummary.textContent = total > 0 ? `共 ${total} 項物品 · 依分類瀏覽` : '尚未新增物品 · 依分類瀏覽';
+            }
 
-                const summary = document.createElement('summary');
-                summary.className = 'item-summary';
-                summary.innerHTML = `<span>${label}</span><div class="meta"><span>${items.length} 件</span></div>`;
-                group.appendChild(summary);
+            let selectedItem = null;
+            if (selectedItemId) {
+                selectedItem = allItems.find(it => it.id === selectedItemId) || null;
+            }
+            if (!selectedItem && selectedCategoryId) {
+                const candidates = itemsByCategory.get(selectedCategoryId) || [];
+                if (candidates.length > 0) {
+                    selectedItem = candidates.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-Hant'))[0];
+                }
+            }
+            if (!selectedItem && allItems.length > 0) {
+                selectedItem = allItems.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-Hant'))[0];
+            }
 
-                const entries = document.createElement('div'); entries.className = 'item-entries';
-                if (items.length === 0) {
+            selectedItemId = selectedItem ? selectedItem.id : null;
+            if (selectedItem) {
+                selectedCategoryId = selectedItem.categoryId || 'uncategorized';
+            }
+
+            itemNav.innerHTML = '';
+            itemDetail.innerHTML = '';
+
+            const renderDetail = (item) => {
+                itemDetail.innerHTML = '';
+                if (!item) {
                     const empty = document.createElement('div');
                     empty.className = 'terrain-empty';
-                    empty.textContent = '尚未新增物品';
-                    entries.appendChild(empty);
-                } else {
-                    const sorted = items.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-Hant'));
-                    sorted.forEach(it => entries.appendChild(buildItemCard(it, openItems, dropOptions)));
+                    empty.textContent = allItems.length === 0 ? '尚未新增物品' : '請從左側選擇物品';
+                    itemDetail.appendChild(empty);
+                    return;
                 }
-                group.appendChild(entries);
-                itemList.appendChild(group);
+                itemDetail.appendChild(buildItemCard(item, dropOptions));
             };
 
-            categories.forEach(cat => buildGroup(cat.id, cat.label, map.get(cat.id) || []));
+            const updateActiveNav = () => {
+                Array.from(itemNav.querySelectorAll('.item-nav-item')).forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.itemId === selectedItemId);
+                });
+            };
+
+            const handleSelect = (item) => {
+                selectedItemId = item?.id || null;
+                selectedCategoryId = item ? (item.categoryId || 'uncategorized') : selectedCategoryId;
+                renderDetail(item || null);
+                updateActiveNav();
+            };
+
+            const buildGroup = (catId, label, items) => {
+                const group = document.createElement('div');
+                group.className = 'item-nav-group';
+                const title = document.createElement('div');
+                title.className = 'item-nav-title';
+                title.textContent = `${label}（${items.length}）`;
+                const list = document.createElement('div');
+                list.className = 'item-nav-items';
+                if (items.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'item-nav-empty';
+                    empty.textContent = '尚未新增';
+                    list.appendChild(empty);
+                } else {
+                    const sorted = items.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-Hant'));
+                    sorted.forEach(it => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'item-nav-item';
+                        btn.dataset.itemId = it.id;
+                        btn.textContent = it.name || it.id;
+                        btn.onclick = () => handleSelect(it);
+                        list.appendChild(btn);
+                    });
+                }
+                group.append(title, list);
+                itemNav.appendChild(group);
+            };
+
+            categories.forEach(cat => buildGroup(cat.id, cat.label, itemsByCategory.get(cat.id) || []));
             if (uncategorized.length > 0) {
                 buildGroup('uncategorized', '未分類', uncategorized);
             }
 
-            if (openGroups.size === 0 && itemList.firstElementChild instanceof HTMLElement) {
-                const firstDetails = itemList.firstElementChild;
-                if ('open' in firstDetails) firstDetails.open = true;
-            }
+            renderDetail(selectedItem || null);
+            updateActiveNav();
 
             pendingOpenItemId = null;
             pendingOpenCategoryId = null;
