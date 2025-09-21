@@ -7,18 +7,18 @@
     <title>Game Asset CMS – Items / Animals / Hitboxes</title>
     <style>
         :root {
-            --bg: #141d3a;
-            --panel: #1d2a55;
-            --panel2: #18234b;
-            --text: #f3f6ff;
-            --muted: #c1cae9;
-            --primary: #8fb6ff;
-            --accent: #8cffd4;
-            --danger: #ff9999;
+            --bg: #f5f7ff;
+            --panel: #ffffff;
+            --panel2: #eef2ff;
+            --text: #1f2756;
+            --muted: #6573a0;
+            --primary: #5c7ee8;
+            --accent: #4ec5b1;
+            --danger: #e0707d;
             --br: 16px;
             --pad: 14px;
             --gap: 12px;
-            --shadow: 0 8px 28px rgba(0, 0, 0, .45);
+            --shadow: 0 18px 32px rgba(94, 116, 189, 0.18);
         }
 
         * {
@@ -27,7 +27,7 @@
 
         body {
             margin: 0;
-            background: radial-gradient(1200px 600px at 20% -10%, #28356a, transparent 60%), radial-gradient(1000px 500px at 120% 10%, #24325d, transparent 50%), var(--bg);
+            background: radial-gradient(1100px 560px at 20% -12%, rgba(112, 146, 255, .18), transparent 60%), radial-gradient(900px 520px at 120% 0%, rgba(88, 206, 189, .16), transparent 55%), var(--bg);
             color: var(--text);
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans TC, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"
         }
@@ -1251,10 +1251,344 @@
             flex-wrap: wrap;
             align-items: center
         }
+
+        body.theme-light {
+            --bg: #f5f7ff;
+            --panel: #ffffff;
+            --panel2: #eef2ff;
+            --text: #1f2756;
+            --muted: #6573a0;
+            --primary: #5c7ee8;
+            --accent: #4ec5b1;
+            --danger: #e0707d;
+            --border: #cdd5f6;
+            --border-strong: #b9c4ee;
+            --chip-bg: #f2f5ff;
+            --chip-text: #3f4d88;
+            --surface: #ffffff;
+            --surface-alt: #f6f7ff;
+            --surface-muted: #ecf1ff;
+            --shadow: 0 18px 32px rgba(94, 116, 189, 0.18);
+        }
+
+        body.theme-light {
+            background: radial-gradient(1100px 560px at 20% -12%, rgba(112, 146, 255, .18), transparent 60%),
+                radial-gradient(900px 520px at 120% 0%, rgba(88, 206, 189, .16), transparent 55%), var(--bg);
+            color: var(--text);
+        }
+
+        body.theme-light header {
+            background: linear-gradient(0deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .92)), rgba(255, 255, 255, .88);
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        body.theme-light h1 {
+            color: var(--text);
+        }
+
+        body.theme-light .tag {
+            color: var(--muted);
+        }
+
+        body.theme-light .tab-btn {
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, #ffffff, #eff2ff);
+            color: var(--text);
+        }
+
+        body.theme-light .tab-btn.active {
+            border-color: var(--primary);
+            box-shadow: inset 0 0 0 1px rgba(92, 126, 232, .35);
+        }
+
+        body.theme-light .panel {
+            background: linear-gradient(180deg, var(--panel), var(--panel2));
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            color: var(--text);
+        }
+
+        body.theme-light .panel h2 {
+            color: #31417f;
+        }
+
+        body.theme-light .panel .head {
+            border-bottom: 1px solid var(--border);
+        }
+
+        body.theme-light .row>label {
+            color: var(--muted);
+        }
+
+        body.theme-light .creature-group {
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+        }
+
+        body.theme-light .creature-group-title {
+            color: #31417f;
+        }
+
+        body.theme-light .creature-group-header {
+            color: var(--muted);
+        }
+
+        body.theme-light .creature-animation-row,
+        body.theme-light .creature-skill-row {
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        body.theme-light .creature-empty {
+            border-color: var(--border-strong);
+            background: var(--surface-alt);
+            color: var(--muted);
+        }
+
+        body.theme-light ::placeholder {
+            color: rgba(63, 77, 136, .45);
+        }
+
+        body.theme-light input[type="text"],
+        body.theme-light input[type="number"],
+        body.theme-light textarea,
+        body.theme-light select {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        body.theme-light .btn {
+            border: 1px solid var(--primary);
+            background: linear-gradient(180deg, #5f80e7, #4667cf);
+            color: #fff;
+        }
+
+        body.theme-light .btn.secondary {
+            border-color: var(--border-strong);
+            background: linear-gradient(180deg, #f9faff, #e6ebff);
+            color: var(--text);
+        }
+
+        body.theme-light .btn.danger {
+            border-color: var(--danger);
+            background: linear-gradient(180deg, #f39aa3, #d86d79);
+            color: #fff;
+        }
+
+        body.theme-light .chip,
+        body.theme-light #aTerrainChecks label.terrain-chip,
+        body.theme-light .checklist label,
+        body.theme-light .pill {
+            border: 1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--chip-text);
+        }
+
+        body.theme-light .preview-thumb,
+        body.theme-light .thumbs img,
+        body.theme-light .card img,
+        body.theme-light .terrain-frame-thumb,
+        body.theme-light .item-image-preview img {
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        body.theme-light .thumbs img {
+            background: var(--surface-alt);
+        }
+
+        body.theme-light .clip-section,
+        body.theme-light .clip-drafts {
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+        }
+
+        body.theme-light .clip-section-title,
+        body.theme-light .clip-drafts-title {
+            color: #31417f;
+        }
+
+        body.theme-light .clip-item {
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        body.theme-light .clip-item.active {
+            border-color: var(--primary);
+            box-shadow: inset 0 0 0 1px rgba(92, 126, 232, .3);
+        }
+
+        body.theme-light .ghost-btn {
+            border: 1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--chip-text);
+        }
+
+        body.theme-light .ghost-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #f9faff;
+        }
+
+        body.theme-light .ghost-btn.danger {
+            border-color: var(--danger);
+            color: #c44f5d;
+            background: rgba(224, 112, 125, .12);
+        }
+
+        body.theme-light .ghost-btn.danger:hover {
+            background: rgba(224, 112, 125, .2);
+            color: #a53b49;
+        }
+
+        body.theme-light .card {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        body.theme-light .terrain-item {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            color: var(--text);
+        }
+
+        body.theme-light .terrain-item[open] {
+            border-color: var(--primary);
+            background: linear-gradient(180deg, rgba(98, 130, 223, .16), rgba(239, 243, 255, .9));
+        }
+
+        body.theme-light .terrain-summary {
+            color: var(--text);
+        }
+
+        body.theme-light .terrain-summary::after {
+            color: var(--muted);
+        }
+
+        body.theme-light .terrain-body {
+            border-top: 1px solid var(--border);
+        }
+
+        body.theme-light .terrain-image-card {
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+        }
+
+        body.theme-light .terrain-image-card a {
+            border: 1px solid var(--border);
+        }
+
+        body.theme-light .terrain-animations-title {
+            color: #31417f;
+        }
+
+        body.theme-light .terrain-animation-card {
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(255, 255, 255, .95), rgba(239, 243, 255, .9));
+        }
+
+        body.theme-light .terrain-frame-row {
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+        }
+
+        body.theme-light .terrain-animation-empty {
+            border-color: var(--border-strong);
+            background: var(--surface-alt);
+            color: var(--muted);
+        }
+
+        body.theme-light .checklist label {
+            box-shadow: 0 1px 2px rgba(63, 77, 136, .12);
+        }
+
+        body.theme-light .drop-editor {
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+        }
+
+        body.theme-light .drop-editor .drop-row {
+            border: 1px dashed rgba(92, 126, 232, .25);
+            background: var(--surface);
+        }
+
+        body.theme-light .drop-editor .drop-row button {
+            border: 1px solid var(--danger);
+            background: linear-gradient(180deg, #f3a7af, #d86d77);
+            color: #fff;
+        }
+
+        body.theme-light .drop-editor .drop-empty {
+            border: 1px dashed rgba(92, 126, 232, .2);
+            background: var(--surface-alt);
+        }
+
+        body.theme-light .drop-editor .btn-add-drop {
+            border: 1px solid var(--primary);
+            background: linear-gradient(180deg, rgba(95, 128, 231, .82), rgba(71, 104, 203, .92));
+            color: #fff;
+        }
+
+        body.theme-light .item-nav-group {
+            border: 1px solid var(--border);
+            background: var(--surface-alt);
+        }
+
+        body.theme-light .item-nav-title {
+            color: #31417f;
+        }
+
+        body.theme-light .item-nav-item {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        body.theme-light .item-nav-item:hover {
+            border-color: var(--primary);
+            background: var(--surface-alt);
+        }
+
+        body.theme-light .item-nav-item.active {
+            border-color: var(--primary);
+            background: linear-gradient(180deg, rgba(98, 130, 223, .18), rgba(239, 243, 255, .95));
+            box-shadow: inset 0 0 0 1px rgba(92, 126, 232, .25);
+        }
+
+        body.theme-light .item-card {
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        body.theme-light .item-body {
+            border-top: 1px solid var(--border);
+        }
+
+        body.theme-light .kvs {
+            color: var(--text);
+        }
+
+        body.theme-light .kvs div:nth-child(odd) {
+            color: var(--muted);
+        }
+
+        body.theme-light .note,
+        body.theme-light .small {
+            color: var(--muted);
+        }
+
+        body.theme-light canvas {
+            background: var(--surface);
+            border: 1px dashed var(--border);
+        }
     </style>
 </head>
 
-<body>
+<body class="theme-light">
     <header>
         <div class="bar">
             <h1>Game Asset CMS</h1>
@@ -5053,13 +5387,13 @@
             }
             hitboxes.forEach(b => {
                 const { x, y } = toCanvas(b.x, b.y); const { x: rx, y: ry } = toCanvas(b.x + b.w, b.y + b.h);
-                hctx.strokeStyle = '#8cffd4'; hctx.setLineDash([6, 4]); hctx.lineWidth = 2; hctx.strokeRect(x, y, rx - x, ry - y);
+                hctx.strokeStyle = '#4ec5b1'; hctx.setLineDash([6, 4]); hctx.lineWidth = 2; hctx.strokeRect(x, y, rx - x, ry - y);
                 hctx.setLineDash([]);
-                hctx.fillStyle = 'rgba(140,255,212,0.18)'; hctx.fillRect(x, y, rx - x, ry - y);
+                hctx.fillStyle = 'rgba(78,197,177,0.18)'; hctx.fillRect(x, y, rx - x, ry - y);
                 drawHandle(x, y); drawHandle(rx, y); drawHandle(x, ry); drawHandle(rx, ry);
             });
         }
-        function drawHandle(x, y) { hctx.fillStyle = '#8fb6ff'; hctx.fillRect(x - 5, y - 5, 10, 10); }
+        function drawHandle(x, y) { hctx.fillStyle = '#5c7ee8'; hctx.fillRect(x - 5, y - 5, 10, 10); }
 
         function hitAt(cx, cy) {
             for (const b of [...hitboxes].slice().reverse()) {
@@ -5261,10 +5595,10 @@
         // ----------------------------- Helpers & Render -----------------------------
         function cloneCard() { return document.getElementById('tpl-card').content.firstElementChild.cloneNode(true); }
         function placeholderIcon() {
-            return 'data:image/svg+xml,' + encodeURIComponent(svgIcon('#8cffd4'));
+            return 'data:image/svg+xml,' + encodeURIComponent(svgIcon('#4ec5b1'));
         }
         function svgIcon(color) {
-            return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${color}"/><stop offset="1" stop-color="#2b3c85"/></linearGradient></defs><rect rx="12" width="64" height="64" fill="url(#g)"/><g fill="#141d3a" opacity=".6"><circle cx="48" cy="14" r="4"/><circle cx="20" cy="46" r="6"/><rect x="12" y="14" width="24" height="12" rx="3"/></g></svg>`;
+            return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${color}"/><stop offset="1" stop-color="#9fb3f1"/></linearGradient></defs><rect rx="12" width="64" height="64" fill="url(#g)"/><g fill="#2f3e78" opacity=".45"><circle cx="48" cy="14" r="4"/><circle cx="20" cy="46" r="6"/><rect x="12" y="14" width="24" height="12" rx="3"/></g></svg>`;
         }
 
         function renderAll() { renderTerrains(); renderItems(); renderAnimals(); renderEntities(); }
