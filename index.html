@@ -102,7 +102,6 @@
             grid-template-columns: minmax(0, 1.95fr) minmax(0, 1.05fr);
             align-items: start;
         }
-
         .panel[data-tab="entities"] .grid {
             grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
         }
@@ -1411,6 +1410,7 @@
                             <button id="addAnimal" class="btn" type="button">儲存動物</button>
                             <button id="resetAnimal" class="btn secondary" type="button">清空表單</button>
                         </div>
+
                         <div class="note" id="animalEditorStatus">目前為新增模式</div>
                         <div class="note">提示：建立或編輯動畫後，記得儲存動物即可同步更新列表。</div>
                     </div>
@@ -1956,6 +1956,30 @@
                 return copy;
             });
         }
+
+    <script>
+        // ----------------------------- Data Types -----------------------------
+        const LS_KEY = 'asset-cms-v1';
+        const uid = () => Math.random().toString(36).slice(2, 9);
+        const terrainApiUrl = 'terrain_api.php';
+        const itemApiUrl = 'item_api.php';
+        let pendingOpenItemId = null;
+        let pendingOpenCategoryId = null;
+        let selectedItemId = null;
+        let selectedCategoryId = null;
+        let editingAnimalTerrains = new Set();
+        const defaultItemCategories = [
+            { id: 'decor', label: '裝飾' },
+            { id: 'interactive', label: '可互動' },
+            { id: 'building', label: '建材' },
+            { id: 'drop', label: '掉落物' },
+            { id: 'resource', label: '素材' },
+            { id: 'consumable', label: '消耗品' },
+            { id: 'crop', label: '農作物' },
+            { id: 'mineral', label: '礦物' },
+            { id: 'tree', label: '樹木' },
+            { id: 'animal', label: '生物' }
+        ];
 
         const emptyProject = () => ({
             meta: { name: 'My Game Assets', version: '1.0.0', updatedAt: new Date().toISOString() },
@@ -4364,6 +4388,7 @@
             if (target) {
                 startEditAnimal(target.id);
             }
+
             alert(isUpdate ? '動物已更新' : '動物已新增');
         };
 
