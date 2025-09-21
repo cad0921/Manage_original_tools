@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>滿版水動畫 – Terrains 水景全螢幕預覽</title>
+        <style>
+            :root {
+                color-scheme: dark;
+                --deep-blue: #03132a;
+                --mid-blue: #0a2b4f;
+                --accent: #3ec5ff;
+                --glow: rgba(88, 198, 255, 0.35);
+                --panel: rgba(3, 25, 50, 0.75);
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+                min-height: 100vh;
+                background: radial-gradient(circle at 18% 12%, rgba(64, 163, 255, 0.25), transparent 55%),
+                    radial-gradient(circle at 78% 8%, rgba(42, 137, 250, 0.2), transparent 60%),
+                    linear-gradient(180deg, #010b19 0%, #041a34 48%, #03142a 100%);
+                color: #dcf6ff;
+                overflow: hidden;
+            }
+
+            .water-board {
+                position: relative;
+                min-height: 100vh;
+                width: 100%;
+                overflow: hidden;
+            }
+
+            .water-board::before,
+            .water-board::after {
+                content: "";
+                position: absolute;
+                inset: -40%;
+                background: radial-gradient(circle at 50% 50%, rgba(46, 164, 255, 0.18), transparent 70%);
+                mix-blend-mode: screen;
+                animation: spin 68s linear infinite;
+                opacity: 0.75;
+            }
+
+            .water-board::after {
+                background: radial-gradient(circle at 45% 55%, rgba(66, 194, 255, 0.2), transparent 65%);
+                animation-duration: 92s;
+                animation-direction: reverse;
+                opacity: 0.55;
+            }
+
+            @keyframes spin {
+                from {
+                    transform: rotate(0deg) scale(1.08);
+                }
+
+                to {
+                    transform: rotate(360deg) scale(1.08);
+                }
+            }
+
+            .water-grid {
+                position: relative;
+                display: grid;
+                gap: clamp(8px, 1.8vw, 22px);
+                padding: clamp(24px, 5vw, 80px);
+                min-height: 100vh;
+                grid-template-columns: repeat(auto-fit, minmax(clamp(140px, 20vw, 240px), 1fr));
+                grid-auto-rows: 1fr;
+                align-content: stretch;
+                justify-items: stretch;
+                z-index: 1;
+                isolation: isolate;
+            }
+
+            .water-grid::before {
+                content: "";
+                position: absolute;
+                inset: clamp(12px, 4vw, 60px);
+                background: linear-gradient(145deg, rgba(18, 62, 110, 0.22), rgba(12, 41, 82, 0.45));
+                filter: blur(40px);
+                z-index: -1;
+            }
+
+            .tile {
+                position: relative;
+                width: 100%;
+                padding-bottom: 100%;
+                border-radius: clamp(16px, 3vw, 32px);
+                overflow: hidden;
+                background: radial-gradient(circle at 45% 35%, rgba(72, 198, 255, 0.3), rgba(7, 42, 77, 0.82));
+                box-shadow: 0 28px 55px rgba(3, 18, 36, 0.65);
+                backdrop-filter: blur(4px);
+            }
+
+            .tile::after {
+                content: "";
+                position: absolute;
+                inset: -30%;
+                background: linear-gradient(120deg, rgba(255, 255, 255, 0.05), transparent 60%);
+                mix-blend-mode: screen;
+                opacity: 0.4;
+                animation: shimmer 14s ease-in-out infinite;
+            }
+
+            @keyframes shimmer {
+                0%,
+                100% {
+                    transform: translate(-6%, -6%) rotate(0deg);
+                }
+
+                50% {
+                    transform: translate(6%, 8%) rotate(2deg);
+                }
+            }
+
+            .tile img {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                filter: saturate(120%) brightness(1.08);
+                transform: scale(1.05);
+            }
+
+            .hud {
+                position: fixed;
+                left: clamp(16px, 5vw, 64px);
+                top: clamp(16px, 4vw, 56px);
+                z-index: 3;
+            }
+
+            .hud-panel {
+                padding: clamp(18px, 3vw, 32px);
+                border-radius: 20px;
+                background: var(--panel);
+                backdrop-filter: blur(14px);
+                border: 1px solid rgba(90, 207, 255, 0.35);
+                box-shadow: 0 18px 40px rgba(3, 14, 28, 0.68);
+                display: grid;
+                gap: 12px;
+                max-width: min(320px, 42vw);
+            }
+
+            .hud-panel h1 {
+                font-size: clamp(20px, 3vw, 28px);
+                letter-spacing: 1.4px;
+                color: #f1fbff;
+            }
+
+            .status {
+                font-size: 14px;
+                letter-spacing: 1.2px;
+                color: rgba(201, 239, 255, 0.85);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .status::before {
+                content: "";
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: var(--accent);
+                box-shadow: 0 0 12px var(--glow);
+                flex-shrink: 0;
+            }
+
+            dl.meta {
+                display: grid;
+                grid-template-columns: auto 1fr;
+                gap: 4px 12px;
+                font-size: 13px;
+                letter-spacing: 1.1px;
+                color: rgba(198, 236, 255, 0.8);
+            }
+
+            dl.meta dt {
+                opacity: 0.75;
+            }
+
+            dl.meta dd {
+                margin: 0;
+                font-weight: 500;
+                color: rgba(222, 247, 255, 0.9);
+            }
+
+            .legend {
+                font-size: 12px;
+                letter-spacing: 1.2px;
+                color: rgba(182, 229, 255, 0.7);
+                line-height: 1.6;
+            }
+
+            .legend strong {
+                color: rgba(217, 245, 255, 0.92);
+            }
+
+            @media (max-width: 768px) {
+                .water-grid {
+                    padding: clamp(16px, 6vw, 32px);
+                    gap: clamp(6px, 2vw, 12px);
+                }
+
+                .tile {
+                    border-radius: clamp(12px, 4vw, 20px);
+                }
+
+                .hud {
+                    left: clamp(12px, 4vw, 36px);
+                    top: clamp(12px, 4vw, 32px);
+                }
+
+                .hud-panel {
+                    width: min(260px, 76vw);
+                }
+            }
+
+            @media (max-width: 540px) {
+                .hud-panel {
+                    backdrop-filter: blur(10px);
+                    gap: 8px;
+                }
+
+                .status {
+                    font-size: 12px;
+                }
+
+                dl.meta {
+                    font-size: 12px;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .water-board::before,
+                .water-board::after,
+                .tile::after {
+                    animation-duration: 1ms;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="water-board">
+            <div class="water-grid" data-grid>
+                <div class="tile placeholder">
+                    <span style="position: absolute; inset: 20%; display: grid; place-items: center; font-size: 14px; color: rgba(223, 245, 255, 0.7); letter-spacing: 1.4px; text-align: center;">
+                        正在載入水紋影格…
+                    </span>
+                </div>
+            </div>
+
+            <div class="hud">
+                <div class="hud-panel">
+                    <h1>滿版水動畫</h1>
+                    <p class="status" data-status>準備載入 Terrains 資料…</p>
+                    <dl class="meta" data-meta>
+                        <dt>來源</dt>
+                        <dd>Terrains/terrains.json</dd>
+                    </dl>
+                    <p class="legend">
+                        此頁面會讀取 <strong>terrains.json</strong> 中的「水」物件，並根據動畫影格自動鋪滿整個畫面。可自由放大視窗觀察動態紋理。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <noscript>
+            <div
+                style="position: fixed; inset: 0; background: rgba(4, 18, 36, 0.9); color: #fff; display: grid; place-items: center; padding: 24px; text-align: center;">
+                需要啟用 JavaScript 才能播放來自 terrains.json 的水動畫。
+            </div>
+        </noscript>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                const gridElement = document.querySelector("[data-grid]");
+                const statusElement = document.querySelector("[data-status]");
+                const metaElement = document.querySelector("[data-meta]");
+
+                if (!gridElement || !statusElement || !metaElement) {
+                    return;
+                }
+
+                const approxTileSize = 180;
+                const tiles = [];
+                let animationHandle = null;
+                let currentFrame = 0;
+                let lastTimestamp = 0;
+                let frameDuration = 160;
+                let frames = [];
+                let terrainLabel = "水";
+
+                function updateStatus(text) {
+                    statusElement.textContent = text;
+                }
+
+                function createTile(offset) {
+                    const tile = document.createElement("div");
+                    tile.className = "tile";
+                    const img = document.createElement("img");
+                    img.alt = `${terrainLabel}動畫影格`;
+                    tile.appendChild(img);
+                    gridElement.appendChild(tile);
+                    tiles.push({ img, offset });
+                    img.src = frames[(currentFrame + offset) % frames.length];
+                }
+
+                function removeTile() {
+                    const item = tiles.pop();
+                    if (item && item.img.parentElement) {
+                        item.img.parentElement.remove();
+                    }
+                }
+
+                function desiredTileCount() {
+                    const columns = Math.ceil(window.innerWidth / approxTileSize);
+                    const rows = Math.ceil(window.innerHeight / approxTileSize);
+                    return Math.max(columns * rows, 12);
+                }
+
+                function syncTileCount() {
+                    const target = desiredTileCount();
+                    if (!frames.length) {
+                        return;
+                    }
+                    while (tiles.length < target) {
+                        const offset = Math.floor(Math.random() * frames.length);
+                        createTile(offset);
+                    }
+                    while (tiles.length > target) {
+                        removeTile();
+                    }
+                }
+
+                function step(now) {
+                    if (!lastTimestamp) {
+                        lastTimestamp = now;
+                    }
+                    if (now - lastTimestamp >= frameDuration) {
+                        currentFrame = (currentFrame + 1) % frames.length;
+                        tiles.forEach(({ img, offset }) => {
+                            const index = (currentFrame + offset) % frames.length;
+                            img.src = frames[index];
+                        });
+                        lastTimestamp = now;
+                    }
+                    animationHandle = window.requestAnimationFrame(step);
+                }
+
+                function startAnimation() {
+                    if (animationHandle || !frames.length) {
+                        return;
+                    }
+                    lastTimestamp = 0;
+                    animationHandle = window.requestAnimationFrame(step);
+                    updateStatus(`播放中 – ${terrainLabel}`);
+                }
+
+                function stopAnimation(message) {
+                    if (animationHandle) {
+                        window.cancelAnimationFrame(animationHandle);
+                        animationHandle = null;
+                    }
+                    if (frames.length) {
+                        tiles.forEach(({ img, offset }) => {
+                            const index = offset % frames.length;
+                            img.src = frames[index];
+                        });
+                    }
+                    updateStatus(message || `靜態預覽 – ${terrainLabel}`);
+                }
+
+                async function preloadImages(sources) {
+                    const loaders = sources.map(
+                        (source) =>
+                            new Promise((resolve) => {
+                                const image = new Image();
+                                image.onload = () => resolve();
+                                image.onerror = () => resolve();
+                                image.src = source;
+                            })
+                    );
+                    await Promise.all(loaders);
+                }
+
+                function buildMeta({ tag, name, animations }, fps, frameCount) {
+                    const animationNames = (animations || [])
+                        .map((item) => item.name)
+                        .filter(Boolean)
+                        .join("、") || "-";
+
+                    metaElement.innerHTML = `
+                        <dt>地形</dt>
+                        <dd>${tag || name || "水"}</dd>
+                        <dt>FPS</dt>
+                        <dd>${fps} 帧/秒</dd>
+                        <dt>影格數</dt>
+                        <dd>${frameCount} 張</dd>
+                        <dt>動畫名稱</dt>
+                        <dd>${animationNames}</dd>
+                    `;
+                }
+
+                async function init() {
+                    try {
+                        updateStatus("連線到 terrains.json…");
+                        const response = await fetch("Terrains/terrains.json", { cache: "no-store" });
+                        if (!response.ok) {
+                            throw new Error(`讀取失敗 (${response.status})`);
+                        }
+                        const data = await response.json();
+                        if (!data || !Array.isArray(data.terrains)) {
+                            throw new Error("資料格式不正確");
+                        }
+
+                        const terrain = data.terrains.find((item) => item.id === "water_457b57" || item.name === "water" || item.tag === "水");
+                        if (!terrain) {
+                            throw new Error("找不到水的地形資料");
+                        }
+
+                        const animation = Array.isArray(terrain.animations) ? terrain.animations[0] : null;
+                        if (!animation || !Array.isArray(animation.frames) || !animation.frames.length) {
+                            throw new Error("水地形缺少動畫影格");
+                        }
+
+                        const fps = Number(animation.fps) > 0 ? Number(animation.fps) : 6;
+                        frameDuration = 1000 / fps;
+                        terrainLabel = terrain.tag || terrain.name || "水";
+
+                        const availableImages = Array.isArray(terrain.images) ? terrain.images : [];
+                        frames = animation.frames
+                            .map((frame) => {
+                                const fromImages = availableImages.find((image) => image.filename === frame.filename);
+                                if (fromImages && fromImages.path) {
+                                    return fromImages.path;
+                                }
+                                return `Terrains/${terrain.id}/${frame.filename}`;
+                            })
+                            .filter(Boolean);
+
+                        if (!frames.length) {
+                            throw new Error("無可用的水動畫影格");
+                        }
+
+                        buildMeta(terrain, fps, frames.length);
+                        updateStatus("預載影格中…");
+                        await preloadImages(frames);
+
+                        gridElement.innerHTML = "";
+                        tiles.length = 0;
+                        syncTileCount();
+
+                        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+                        const handleMotionPreference = (event) => {
+                            if (event.matches) {
+                                stopAnimation(`靜態預覽 – ${terrainLabel}`);
+                            } else {
+                                startAnimation();
+                            }
+                        };
+
+                        if (prefersReducedMotion.matches) {
+                            stopAnimation(`靜態預覽 – ${terrainLabel}`);
+                        } else {
+                            startAnimation();
+                        }
+
+                        prefersReducedMotion.addEventListener("change", handleMotionPreference);
+
+                        window.addEventListener("resize", () => {
+                            syncTileCount();
+                        });
+                    } catch (error) {
+                        console.error(error);
+                        updateStatus(`⚠️ ${error.message}`);
+                    }
+                }
+
+                init();
+            });
+        </script>
+    </body>
+</html>
