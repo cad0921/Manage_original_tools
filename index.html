@@ -93,9 +93,100 @@
             gap: 16px
         }
 
+        .panel[data-tab="items"] .grid {
+            grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+            align-items: start;
+            gap: 24px;
+        }
+
+        .panel[data-tab="items"] .item-sidebar {
+            background: rgba(14, 21, 51, .65);
+            border: 1px solid #1f2b62;
+            border-radius: 14px;
+            padding: 16px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+            box-shadow: inset 0 0 0 1px rgba(76, 109, 255, .08);
+        }
+
+        .panel[data-tab="items"] #itemList {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: clamp(420px, 70vh, 640px);
+            overflow: auto;
+            padding-right: 6px;
+        }
+
+        .panel[data-tab="items"] #itemList::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .panel[data-tab="items"] #itemList::-webkit-scrollbar-thumb {
+            background: rgba(90, 117, 196, .55);
+            border-radius: 4px;
+        }
+
+        .panel[data-tab="items"] .item-form {
+            background: rgba(14, 21, 51, .65);
+            border: 1px solid #1f2b62;
+            border-radius: 14px;
+            padding: 18px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px 20px;
+            min-width: 0;
+            box-shadow: inset 0 0 0 1px rgba(76, 109, 255, .08);
+        }
+
+        .panel[data-tab="items"] .item-form .row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+        }
+
+        .panel[data-tab="items"] .item-form .row>label {
+            min-width: 0;
+            font-size: 13px;
+            color: #b9c5ff;
+            letter-spacing: .3px;
+        }
+
+        .panel[data-tab="items"] .item-form .row.full {
+            grid-column: 1 / -1;
+        }
+
+        .panel[data-tab="items"] .item-form textarea {
+            min-height: 120px;
+        }
+
+        .panel[data-tab="items"] .item-form .row .checklist,
+        .panel[data-tab="items"] .item-form .row .creature-editor-host,
+        .panel[data-tab="items"] .item-form .row .drop-editor-wrap {
+            width: 100%;
+        }
+
+        .panel[data-tab="items"] .item-form .footer {
+            margin-top: 0;
+        }
+
         @media (max-width:1000px) {
             .grid {
                 grid-template-columns: 1fr
+            }
+
+            .panel[data-tab="items"] .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .panel[data-tab="items"] .item-form {
+                grid-template-columns: 1fr;
+            }
+
+            .panel[data-tab="items"] #itemList {
+                max-height: none;
             }
         }
 
@@ -931,28 +1022,41 @@
             </div>
             <div class="body">
                 <div class="grid">
-                    <div>
-                        <div class="row"><label>名稱</label><input id="iName" type="text" placeholder="紅寶石礦 / 木箱 / 陷阱" />
+                    <div class="item-sidebar">
+                        <div class="list" id="itemList"></div>
+                    </div>
+                    <div class="item-form" id="item-editor-right">
+                        <div class="row full">
+                            <label>名稱</label>
+                            <input id="iName" type="text" placeholder="紅寶石礦 / 木箱 / 陷阱" />
                         </div>
-                        <div class="row"><label>分類</label>
+                        <div class="row">
+                            <label>分類</label>
                             <select id="iCategory"></select>
                         </div>
-                        <div class="row"><label>圖片</label><input id="iIcon" type="file" accept="image/*" /></div>
-                        <div class="row"><label>適用地形</label>
+                        <div class="row">
+                            <label>圖片</label>
+                            <input id="iIcon" type="file" accept="image/*" />
+                        </div>
+                        <div class="row full">
+                            <label>適用地形</label>
                             <div id="iTerrainChecks" class="checklist"></div>
                         </div>
-                        <div class="row"><label>備註</label><textarea id="iNote" placeholder="限制、互動規則等…"></textarea></div>
-                        <div class="row item-drop-row"><label>掉落設定</label>
+                        <div class="row full">
+                            <label>備註</label>
+                            <textarea id="iNote" placeholder="限制、互動規則等…"></textarea>
+                        </div>
+                        <div class="row item-drop-row full">
+                            <label>掉落設定</label>
                             <div id="iDropEditor" class="drop-editor-wrap"></div>
                         </div>
-                        <div class="row creature-row" id="iCreatureFields">
+                        <div class="row creature-row full" id="iCreatureFields">
                             <label>生物設定</label>
                             <div class="creature-editor-host" id="iCreatureEditorHost"></div>
                         </div>
-                        <div class="row"><button id="addItem" class="btn">新增物品</button></div>
-                    </div>
-                    <div>
-                        <div class="list" id="itemList"></div>
+                        <div class="row full">
+                            <button id="addItem" class="btn">新增物品</button>
+                        </div>
                     </div>
                 </div>
             </div>
