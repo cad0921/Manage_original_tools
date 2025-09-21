@@ -4,7 +4,12 @@
       "id": "forest_wolf",
       "name": "Forest Wolf",
       "habitat": "temperate_forest",
-      "image": "Animals/sprites/forest_wolf.png",
+      "image": {
+        "filename": "forest_wolf.png",
+        "path": "Animals/sprites/forest_wolf.png",
+        "label": "",
+        "uploadedAt": null
+      },
       "behavior": "neutral",
       "stats": {
         "health": 120,

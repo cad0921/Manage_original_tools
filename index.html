@@ -7,18 +7,22 @@
     <title>Game Asset CMS – Items / Animals / Hitboxes</title>
     <style>
         :root {
-            --bg: #0b1020;
-            --panel: #121832;
-            --panel2: #0f1530;
-            --text: #e6ecff;
-            --muted: #a6b2d6;
-            --primary: #7aa2ff;
-            --accent: #7cffc4;
-            --danger: #ff7a7a;
+            --bg: #fcfdff;
+            --panel: #ffffff;
+            --panel2: #f7f9ff;
+            --text: #1f2b4f;
+            --muted: #7582a6;
+            --primary: #7a9bff;
+            --accent: #8fe8d6;
+            --danger: #ee8b96;
+            --border: #e1e6f7;
+            --border-strong: #d2dbf1;
+            --chip: #f6f8ff;
+            --thumb: #f7f9ff;
+            --shadow: 0 12px 32px rgba(44, 70, 135, .12);
             --br: 16px;
             --pad: 14px;
             --gap: 12px;
-            --shadow: 0 8px 28px rgba(0, 0, 0, .45);
         }
 
         * {
@@ -27,7 +31,7 @@
 
         body {
             margin: 0;
-            background: radial-gradient(1200px 600px at 20% -10%, #1e274a, transparent 60%), radial-gradient(1000px 500px at 120% 10%, #1a2142, transparent 50%), var(--bg);
+            background: radial-gradient(1200px 600px at 20% -10%, rgba(143, 171, 255, .14), transparent 60%), radial-gradient(1000px 500px at 120% 8%, rgba(134, 211, 255, .1), transparent 55%), var(--bg);
             color: var(--text);
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans TC, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"
         }
@@ -36,9 +40,10 @@
             position: sticky;
             top: 0;
             z-index: 5;
-            background: linear-gradient(0deg, rgba(11, 16, 32, 0), rgba(11, 16, 32, .85)), var(--panel);
-            backdrop-filter: saturate(1.2) blur(8px);
-            border-bottom: 1px solid #1d2550
+            background: linear-gradient(0deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .92)), rgba(255, 255, 255, .9);
+            backdrop-filter: saturate(1.25) blur(12px);
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 4px 18px rgba(34, 55, 118, .08);
         }
 
         header .bar {
@@ -74,17 +79,24 @@
         }
 
         .tab-btn {
-            border: 1px solid #22306b;
-            background: linear-gradient(180deg, #1b2450, #141b3d);
+            border: 1px solid var(--border-strong);
+            background: linear-gradient(180deg, #fcfdff, #f2f5ff);
             color: var(--text);
             padding: 8px 12px;
             border-radius: 999px;
-            cursor: pointer
+            cursor: pointer;
+            transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .tab-btn:hover {
+            border-color: var(--primary);
+            box-shadow: 0 6px 12px rgba(122, 155, 255, .16);
         }
 
         .tab-btn.active {
-            border-color: #3b55c8;
-            box-shadow: inset 0 0 0 1px #3b55c855
+            border-color: var(--primary);
+            background: linear-gradient(180deg, #eef3ff, #e1e9ff);
+            box-shadow: inset 0 0 0 1px rgba(122, 155, 255, .22), 0 8px 16px rgba(122, 155, 255, .18);
         }
 
         .grid {
@@ -119,7 +131,7 @@
 
         .panel {
             background: linear-gradient(180deg, var(--panel), var(--panel2));
-            border: 1px solid #1d2550;
+            border: 1px solid var(--border);
             border-radius: var(--br);
             box-shadow: var(--shadow)
         }
@@ -127,7 +139,7 @@
         .panel h2 {
             font-size: 16px;
             margin: 0 0 12px;
-            color: #c9d5ff
+            color: #253567
         }
 
         .panel .head {
@@ -135,7 +147,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 14px;
-            border-bottom: 1px solid #1d2550
+            border-bottom: 1px solid var(--border)
         }
 
         .panel .body {
@@ -176,8 +188,8 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            background: #0f1534;
-            border: 1px solid #1d2550;
+            background: var(--panel2);
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 12px;
         }
@@ -193,7 +205,7 @@
 
         .creature-group-title {
             font-weight: 600;
-            color: #d7e0ff;
+            color: var(--text);
         }
 
         .creature-list {
@@ -210,8 +222,8 @@
             align-items: center;
             padding: 10px;
             border-radius: 10px;
-            border: 1px solid #1f2955;
-            background: #0c1434;
+            border: 1px solid var(--border-strong);
+            background: var(--panel2);
         }
 
         .creature-inline {
@@ -252,7 +264,7 @@
         .creature-empty {
             font-size: 13px;
             color: var(--muted);
-            border: 1px dashed #27306b;
+            border: 1px dashed var(--border-strong);
             border-radius: 10px;
             padding: 12px;
             text-align: center;
@@ -278,8 +290,8 @@
             width: 100%;
             padding: 10px 12px;
             border-radius: 10px;
-            border: 1px solid #27306b;
-            background: #0e1533;
+            border: 1px solid var(--border-strong);
+            background: var(--panel);
             color: var(--text)
         }
 
@@ -290,10 +302,12 @@
         .btn {
             padding: 9px 12px;
             border-radius: 10px;
-            border: 1px solid #2742a2;
-            background: linear-gradient(180deg, #2541a0, #1a2e77);
+            border: 1px solid var(--primary);
+            background: linear-gradient(180deg, #a5b9ff, var(--primary));
             color: white;
-            cursor: pointer
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(122, 155, 255, .22);
+            transition: transform .15s ease, box-shadow .15s ease;
         }
 
         .btn:disabled {
@@ -301,14 +315,22 @@
             cursor: not-allowed
         }
 
+        .btn:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(122, 155, 255, .24);
+        }
+
         .btn.secondary {
-            border-color: #2a355f;
-            background: linear-gradient(180deg, #1a224a, #141b34)
+            border-color: var(--border-strong);
+            background: linear-gradient(180deg, #f9fbff, #eff3ff);
+            color: var(--text);
+            box-shadow: 0 4px 12px rgba(52, 76, 140, .12);
         }
 
         .btn.danger {
-            border-color: #5a2231;
-            background: linear-gradient(180deg, #7a273a, #541a28)
+            border-color: #ee8b96;
+            background: linear-gradient(180deg, #f9b6bf, #ee8b96);
+            box-shadow: 0 8px 18px rgba(238, 139, 150, .16);
         }
 
         .chips {
@@ -319,11 +341,11 @@
 
         .chip {
             padding: 6px 9px;
-            border: 1px solid #2a3a80;
-            background: #121a3f;
+            border: 1px solid var(--border-strong);
+            background: var(--chip);
             border-radius: 999px;
             font-size: 12px;
-            color: #cfe0ff
+            color: var(--text)
         }
 
         .file-input-wrap {
@@ -358,15 +380,15 @@
             height: 72px;
             object-fit: cover;
             border-radius: 10px;
-            border: 1px solid #23306a;
-            background: #0e1533;
+            border: 1px solid var(--border-strong);
+            background: var(--panel);
         }
 
         .clip-section,
         .clip-drafts {
-            border: 1px solid #1f2955;
+            border: 1px solid var(--border-strong);
             border-radius: 12px;
-            background: #0c1434;
+            background: var(--panel2);
             padding: 12px;
             display: flex;
             flex-direction: column;
@@ -386,7 +408,7 @@
         .clip-drafts-title {
             font-size: 14px;
             font-weight: 600;
-            color: #d7e0ff;
+            color: var(--text);
         }
 
         .clip-section-status,
@@ -409,15 +431,15 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            border: 1px solid #27306b;
+            border: 1px solid var(--border-strong);
             border-radius: 10px;
             padding: 10px;
-            background: #0e1533;
+            background: var(--panel);
         }
 
         .clip-item.active {
-            border-color: #3b55c8;
-            box-shadow: inset 0 0 0 1px rgba(122, 162, 255, .3);
+            border-color: var(--primary);
+            box-shadow: inset 0 0 0 1px rgba(122, 155, 255, .24), 0 6px 14px rgba(122, 155, 255, .12);
         }
 
         .clip-item-header {
@@ -441,25 +463,28 @@
         .ghost-btn {
             padding: 4px 8px;
             border-radius: 8px;
-            border: 1px solid #2a355f;
-            background: rgba(18, 26, 63, .6);
-            color: #c5d0ff;
+            border: 1px solid var(--border-strong);
+            background: rgba(122, 155, 255, .12);
+            color: var(--text);
             cursor: pointer;
             font-size: 12px;
+            transition: background-color .15s ease, border-color .15s ease, color .15s ease;
         }
 
         .ghost-btn:hover {
-            border-color: #3d57b8;
-            color: white;
+            border-color: var(--primary);
+            background: rgba(122, 155, 255, .18);
         }
 
         .ghost-btn.danger {
-            border-color: #5a2231;
-            color: #ff9fa6;
+            border-color: #ee8b96;
+            color: #a04a52;
+            background: rgba(238, 139, 150, .12);
         }
 
         .ghost-btn.danger:hover {
-            color: white;
+            background: rgba(238, 139, 150, .2);
+            color: #743138;
         }
 
         .frame-duration-list {
@@ -475,8 +500,8 @@
             gap: 10px;
             padding: 8px 10px;
             border-radius: 10px;
-            border: 1px solid #27306b;
-            background: #10183a
+            border: 1px solid var(--border-strong);
+            background: var(--panel2)
         }
 
         .frame-duration-index {
@@ -497,9 +522,9 @@
             width: 44px;
             height: 44px;
             border-radius: 8px;
-            border: 1px solid #23306a;
+            border: 1px solid var(--border-strong);
             object-fit: cover;
-            background: #0e1533;
+            background: var(--panel);
         }
 
         .frame-duration-item input[type="number"] {
@@ -541,10 +566,10 @@
             gap: 6px;
             padding: 6px 10px;
             border-radius: 999px;
-            border: 1px solid #2a3a80;
-            background: #121a3f;
+            border: 1px solid var(--border-strong);
+            background: var(--chip);
             font-size: 12px;
-            color: #cfe0ff;
+            color: var(--text);
             cursor: pointer;
         }
 
@@ -563,8 +588,8 @@
         }
 
         .card {
-            background: #0e1533;
-            border: 1px solid #1f2755;
+            background: var(--panel);
+            border: 1px solid var(--border);
             border-radius: 14px;
             padding: 12px;
             display: flex;
@@ -578,7 +603,7 @@
             height: 48px;
             object-fit: cover;
             border-radius: 10px;
-            border: 1px solid #23306a
+            border: 1px solid var(--border-strong)
         }
 
         .card-actions {
@@ -600,22 +625,22 @@
             height: 52px;
             object-fit: cover;
             border-radius: 8px;
-            border: 1px solid #23306a;
-            background: #10183a
+            border: 1px solid var(--border-strong);
+            background: var(--panel2)
         }
 
         .terrain-item {
-            border: 1px solid #1f2755;
+            border: 1px solid var(--border);
             border-radius: 14px;
-            background: #0e1533;
+            background: var(--panel);
             box-shadow: var(--shadow);
             padding: 0 12px 12px;
             color: var(--text)
         }
 
         .terrain-item[open] {
-            border-color: #3b55c8;
-            background: linear-gradient(180deg, rgba(30, 40, 90, .45), rgba(12, 18, 46, .95)), #0e1533;
+            border-color: var(--primary);
+            background: linear-gradient(180deg, rgba(122, 155, 255, .14), rgba(225, 233, 255, .92)), var(--panel);
         }
 
         .terrain-summary {
@@ -662,7 +687,7 @@
         }
 
         .terrain-body {
-            border-top: 1px solid #1d2550;
+            border-top: 1px solid var(--border);
             margin-top: 6px;
             padding-top: 12px;
             display: grid;
@@ -703,16 +728,16 @@
             grid-template-columns: auto 1fr;
             gap: 12px;
             padding: 10px;
-            border: 1px solid #23306a;
+            border: 1px solid var(--border-strong);
             border-radius: 12px;
-            background: #0a1232;
+            background: var(--panel2);
         }
 
         .terrain-image-card a {
             display: inline-flex;
             border-radius: 10px;
             overflow: hidden;
-            border: 1px solid #23306a;
+            border: 1px solid var(--border-strong);
         }
 
         .terrain-image-card img {
@@ -766,7 +791,7 @@
         .terrain-animations-title {
             font-size: 14px;
             font-weight: 600;
-            color: #d7e0ff;
+            color: var(--text);
         }
 
         .terrain-animations-meta {
@@ -787,9 +812,9 @@
         }
 
         .terrain-animation-card {
-            border: 1px solid #23306a;
+            border: 1px solid var(--border-strong);
             border-radius: 12px;
-            background: linear-gradient(180deg, rgba(16, 25, 58, .9), rgba(10, 16, 40, .9));
+            background: linear-gradient(180deg, rgba(239, 243, 255, .95), rgba(249, 250, 255, .95));
             padding: 12px;
             display: flex;
             flex-direction: column;
@@ -847,18 +872,18 @@
             flex-wrap: wrap;
             align-items: center;
             gap: 8px;
-            border: 1px solid #27306b;
+            border: 1px solid var(--border-strong);
             border-radius: 10px;
             padding: 8px;
-            background: rgba(12, 18, 48, .7);
+            background: rgba(122, 155, 255, .1);
         }
 
         .terrain-frame-thumb {
             width: 60px;
             height: 60px;
             border-radius: 10px;
-            border: 1px solid #23306a;
-            background: #0e1533;
+            border: 1px solid var(--border-strong);
+            background: var(--panel);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -899,12 +924,12 @@
 
         .terrain-animation-empty {
             padding: 14px;
-            border: 1px dashed #27306b;
+            border: 1px dashed var(--border-strong);
             border-radius: 12px;
             text-align: center;
             color: var(--muted);
             font-size: 13px;
-            background: rgba(12, 18, 45, .6);
+            background: rgba(122, 155, 255, .1);
         }
 
         .terrain-animation-footer {
@@ -924,8 +949,8 @@
             gap: 6px;
             padding: 6px 10px;
             border-radius: 999px;
-            border: 1px solid #23306a;
-            background: #111a3a;
+            border: 1px solid var(--border-strong);
+            background: var(--panel2);
             font-size: 13px;
             cursor: pointer;
         }
@@ -947,9 +972,9 @@
             display: grid;
             gap: 10px;
             padding: 10px;
-            border: 1px solid #23306a;
+            border: 1px solid var(--border-strong);
             border-radius: 12px;
-            background: rgba(8, 14, 42, 0.85);
+            background: linear-gradient(180deg, rgba(252, 253, 255, .96), rgba(240, 244, 255, .96));
         }
 
         .drop-editor .drop-list {
@@ -963,9 +988,9 @@
             gap: 8px;
             align-items: center;
             padding: 6px 8px;
-            border: 1px dashed rgba(58, 78, 150, 0.6);
+            border: 1px dashed rgba(148, 168, 230, .45);
             border-radius: 10px;
-            background: rgba(10, 18, 48, 0.4);
+            background: rgba(122, 155, 255, .1);
         }
 
         .drop-editor .drop-row input,
@@ -977,8 +1002,8 @@
             justify-self: end;
             padding: 6px 10px;
             border-radius: 8px;
-            border: 1px solid #4a2850;
-            background: linear-gradient(180deg, #7a273a, #541a28);
+            border: 1px solid #ee8b96;
+            background: linear-gradient(180deg, #f9b6bf, #ee8b96);
             color: #fff;
             cursor: pointer;
         }
@@ -986,7 +1011,7 @@
         .drop-editor .drop-empty {
             padding: 10px;
             border-radius: 8px;
-            border: 1px dashed rgba(58, 78, 150, 0.4);
+            border: 1px dashed rgba(134, 154, 219, 0.3);
             text-align: center;
             color: var(--muted);
             font-size: 13px;
@@ -1007,10 +1032,11 @@
         .drop-editor .btn-add-drop {
             padding: 7px 12px;
             border-radius: 10px;
-            border: 1px solid #2742a2;
-            background: linear-gradient(180deg, rgba(39, 66, 162, 0.65), rgba(26, 46, 119, 0.8));
+            border: 1px solid var(--primary);
+            background: linear-gradient(180deg, #a5b9ff, var(--primary));
             color: #fff;
             cursor: pointer;
+            box-shadow: 0 6px 14px rgba(122, 155, 255, .2);
         }
 
         .drop-editor .btn-add-drop:disabled {
@@ -1055,9 +1081,9 @@
         }
 
         .item-nav-group {
-            border: 1px solid #1f2755;
+            border: 1px solid var(--border);
             border-radius: 12px;
-            background: linear-gradient(180deg, rgba(14, 20, 45, .9), rgba(10, 18, 44, .95));
+            background: linear-gradient(180deg, rgba(255, 255, 255, .97), rgba(241, 245, 255, .97));
             padding: 10px;
             display: flex;
             flex-direction: column;
@@ -1067,7 +1093,7 @@
         .item-nav-title {
             font-size: 13px;
             font-weight: 600;
-            color: #9fb6ff;
+            color: #2a3c70;
             letter-spacing: .5px;
         }
 
@@ -1078,9 +1104,9 @@
         }
 
         .item-nav-item {
-            border: 1px solid #23306a;
+            border: 1px solid var(--border-strong);
             border-radius: 9px;
-            background: #0a1232;
+            background: var(--panel2);
             color: var(--text);
             padding: 8px 10px;
             text-align: left;
@@ -1090,14 +1116,14 @@
         }
 
         .item-nav-item:hover {
-            border-color: #3d57b8;
-            background: #131d49;
+            border-color: #a4b6ff;
+            background: #f2f5ff;
         }
 
         .item-nav-item.active {
-            border-color: #7aa2ff;
-            background: #162356;
-            box-shadow: inset 0 0 0 1px rgba(122, 162, 255, .3);
+            border-color: #b3c4ff;
+            background: #f4f7ff;
+            box-shadow: inset 0 0 0 1px rgba(122, 155, 255, .2);
         }
 
         .item-nav-empty {
@@ -1110,9 +1136,9 @@
         }
 
         .item-card {
-            border: 1px solid #23306a;
+            border: 1px solid var(--border-strong);
             border-radius: 12px;
-            background: #0a1232;
+            background: var(--panel2);
             padding: 16px;
             display: grid;
             gap: 16px;
@@ -1139,7 +1165,7 @@
         }
 
         .item-body {
-            border-top: 1px solid #1d2550;
+            border-top: 1px solid var(--border);
             padding-top: 12px;
             display: grid;
             gap: 12px;
@@ -1180,8 +1206,8 @@
             height: 96px;
             object-fit: cover;
             border-radius: 12px;
-            border: 1px solid #23306a;
-            background: #0a1232;
+            border: 1px solid var(--border-strong);
+            background: var(--panel2);
         }
 
         .item-image-meta {
@@ -1203,19 +1229,19 @@
             grid-template-columns: 100px 1fr;
             gap: 6px;
             font-size: 13px;
-            color: #cfd8ff
+            color: var(--text)
         }
 
         .kvs div:nth-child(odd) {
-            color: #91a2ff
+            color: var(--muted)
         }
 
         .pill {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            border: 1px solid #2a3a80;
-            background: #121a3f;
+            border: 1px solid var(--border-strong);
+            background: var(--chip);
             border-radius: 999px;
             padding: 6px 9px
         }
@@ -1226,8 +1252,8 @@
         }
 
         canvas {
-            background: #0a1130;
-            border: 1px dashed #32408b;
+            background: var(--panel2);
+            border: 1px dashed var(--border-strong);
             border-radius: 10px;
             max-width: 100%;
             touch-action: none
@@ -1241,7 +1267,7 @@
 
         .note {
             font-size: 12px;
-            color: #9fb4ff
+            color: var(--muted)
         }
 
         .footer {
@@ -1956,30 +1982,6 @@
                 return copy;
             });
         }
-
-    <script>
-        // ----------------------------- Data Types -----------------------------
-        const LS_KEY = 'asset-cms-v1';
-        const uid = () => Math.random().toString(36).slice(2, 9);
-        const terrainApiUrl = 'terrain_api.php';
-        const itemApiUrl = 'item_api.php';
-        let pendingOpenItemId = null;
-        let pendingOpenCategoryId = null;
-        let selectedItemId = null;
-        let selectedCategoryId = null;
-        let editingAnimalTerrains = new Set();
-        const defaultItemCategories = [
-            { id: 'decor', label: '裝飾' },
-            { id: 'interactive', label: '可互動' },
-            { id: 'building', label: '建材' },
-            { id: 'drop', label: '掉落物' },
-            { id: 'resource', label: '素材' },
-            { id: 'consumable', label: '消耗品' },
-            { id: 'crop', label: '農作物' },
-            { id: 'mineral', label: '礦物' },
-            { id: 'tree', label: '樹木' },
-            { id: 'animal', label: '生物' }
-        ];
 
         const emptyProject = () => ({
             meta: { name: 'My Game Assets', version: '1.0.0', updatedAt: new Date().toISOString() },
@@ -5077,13 +5079,13 @@
             }
             hitboxes.forEach(b => {
                 const { x, y } = toCanvas(b.x, b.y); const { x: rx, y: ry } = toCanvas(b.x + b.w, b.y + b.h);
-                hctx.strokeStyle = '#7cffc4'; hctx.setLineDash([6, 4]); hctx.lineWidth = 2; hctx.strokeRect(x, y, rx - x, ry - y);
+                hctx.strokeStyle = '#8fe8d6'; hctx.setLineDash([6, 4]); hctx.lineWidth = 2; hctx.strokeRect(x, y, rx - x, ry - y);
                 hctx.setLineDash([]);
-                hctx.fillStyle = 'rgba(124,255,196,0.15)'; hctx.fillRect(x, y, rx - x, ry - y);
+                hctx.fillStyle = 'rgba(143, 232, 214, 0.2)'; hctx.fillRect(x, y, rx - x, ry - y);
                 drawHandle(x, y); drawHandle(rx, y); drawHandle(x, ry); drawHandle(rx, ry);
             });
         }
-        function drawHandle(x, y) { hctx.fillStyle = '#7aa2ff'; hctx.fillRect(x - 5, y - 5, 10, 10); }
+        function drawHandle(x, y) { hctx.fillStyle = '#b8c8ff'; hctx.fillRect(x - 5, y - 5, 10, 10); }
 
         function hitAt(cx, cy) {
             for (const b of [...hitboxes].slice().reverse()) {
@@ -5285,10 +5287,10 @@
         // ----------------------------- Helpers & Render -----------------------------
         function cloneCard() { return document.getElementById('tpl-card').content.firstElementChild.cloneNode(true); }
         function placeholderIcon() {
-            return 'data:image/svg+xml,' + encodeURIComponent(svgIcon('#7cffc4'));
+            return 'data:image/svg+xml,' + encodeURIComponent(svgIcon('#8fe8d6'));
         }
         function svgIcon(color) {
-            return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${color}"/><stop offset="1" stop-color="#1e2a66"/></linearGradient></defs><rect rx="12" width="64" height="64" fill="url(#g)"/><g fill="#0b1020" opacity=".6"><circle cx="48" cy="14" r="4"/><circle cx="20" cy="46" r="6"/><rect x="12" y="14" width="24" height="12" rx="3"/></g></svg>`;
+            return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${color}"/><stop offset="1" stop-color="#dce5ff"/></linearGradient></defs><rect rx="12" width="64" height="64" fill="url(#g)"/><g fill="#1f2b4f" opacity=".6"><circle cx="48" cy="14" r="4"/><circle cx="20" cy="46" r="6"/><rect x="12" y="14" width="24" height="12" rx="3"/></g></svg>`;
         }
 
         function renderAll() { renderTerrains(); renderItems(); renderAnimals(); renderEntities(); }
