@@ -3,6 +3,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors','1');
 header('Content-Type: text/plain; charset=utf-8');
+ob_start();
 
 echo "== Environment ==\n";
 echo "PHP version: " . PHP_VERSION . "\n";
@@ -51,9 +52,15 @@ if (!file_exists($api)) {
 
 echo "Including terrain_api.php with REQUEST_METHOD=GET ...\n";
 $_SERVER['REQUEST_METHOD'] = 'GET';
+define('TERRAIN_API_CAPTURE_RESPONSE', true);
 ob_start();
 include $api;
 $out = ob_get_clean();
+$status = http_response_code();
+if (!is_int($status) || $status === 0) {
+  $status = 200;
+}
+echo "HTTP status: $status\n";
 echo "Returned bytes: " . strlen($out) . "\n";
 echo "First 400 bytes:\n";
 echo substr($out,0,400);
