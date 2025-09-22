@@ -2321,7 +2321,20 @@
         }
         upgradeTerrainAnimations();
         upgradeAnimalClips();
-        const saveProject = () => { project.meta.updatedAt = new Date().toISOString(); localStorage.setItem(LS_KEY, JSON.stringify(project)); renderAll(); };
+        let renderAllScheduled = false;
+        function scheduleRenderAll() {
+            if (renderAllScheduled) return;
+            renderAllScheduled = true;
+            requestAnimationFrame(() => {
+                renderAllScheduled = false;
+                renderAll();
+            });
+        }
+        const saveProject = () => {
+            project.meta.updatedAt = new Date().toISOString();
+            localStorage.setItem(LS_KEY, JSON.stringify(project));
+            scheduleRenderAll();
+        };
 
         // ----------------------------- Tabs -----------------------------
         const tabsEl = document.getElementById('tabs');

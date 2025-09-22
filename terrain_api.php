@@ -8,16 +8,59 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') { http_response_code(204); exit; }
 
 umask(0);
+
+const JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT;
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_UPLOAD_LABEL = '5 MB';
 
 $baseDir  = __DIR__ . '/Terrains';
 $jsonPath = $baseDir . '/terrains.json';
 
-function respond(int $code, array $payload): void {
+final class TerrainApiResponse extends \RuntimeException
+{
+    public int $statusCode;
+    /** @var array<mixed> */
+    public array $payload;
+
+    /**
+     * @param array<mixed> $payload
+     */
+    public function __construct(int $statusCode, array $payload)
+    {
+        parent::__construct('terrain_api response capture');
+        $this->statusCode = $statusCode;
+        $this->payload = $payload;
+    }
+}
+
+/**
+ * @param array<mixed> $payload
+ */
+function emit_response(int $code, array $payload): void {
     http_response_code($code);
-    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    $json = json_encode($payload, JSON_FLAGS);
+    if ($json === false) {
+        $fallback = json_encode([
+            'status' => 'error',
+            'message' => 'JSON encode failed: ' . json_last_error_msg(),
+        ], JSON_FLAGS);
+        echo $fallback === false ? '{"status":"error","message":"JSON encode failed"}' : $fallback;
+        return;
+    }
+    echo $json;
+}
+
+/**
+ * @param array<mixed> $payload
+ */
+function respond(int $code, array $payload): void {
+    if (defined('TERRAIN_API_CAPTURE_RESPONSE') && TERRAIN_API_CAPTURE_RESPONSE === true) {
+        throw new TerrainApiResponse($code, $payload);
+    }
+    emit_response($code, $payload);
     exit;
 }
 
@@ -52,10 +95,16 @@ function loadData(string $jsonPath): array {
 }
 
 function trySave(string $jsonPath, array $data): void {
-    $data['metadata']['lastUpdated'] = date(DATE_ATOM);
+    $data['metadata']['lastUpdated'] = gmdate('c');
     ensureDirectory(dirname($jsonPath));
 
-    $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    $json = json_encode($data, JSON_FLAGS);
+    if ($json === false) {
+        respond(500, [
+            'status' => 'error',
+            'message' => 'JSON encode failed: ' . json_last_error_msg(),
+        ]);
+    }
     $tmp  = $jsonPath . '.tmp_' . substr(sha1((string)microtime(true)), 0, 6);
 
     // 先寫暫存檔，避免跨磁區或鎖導致的失敗
@@ -81,9 +130,64 @@ function trySave(string $jsonPath, array $data): void {
 }
 
 function slugify(string $value): string {
-    $value = strtolower(trim($value));
-    $value = preg_replace('/[^a-z0-9]+/u', '-', $value) ?? '';
-    return trim($value, '-') ?: 'terrain';
+    $value = trim($value);
+    if (function_exists('mb_strtolower')) {
+        $value = mb_strtolower($value, 'UTF-8');
+    } else {
+        $value = strtolower($value);
+    }
+    $value = preg_replace('/[^\p{L}\p{N}_\-\s]/u', '', $value) ?? '';
+    $value = preg_replace('/\s+/', '-', $value) ?? '';
+    $value = trim($value, '-_');
+    return $value !== '' ? $value : 'terrain';
+}
+
+/**
+ * @param array<string,mixed> $files
+ * @return list<string>
+ */
+function collectOversizedUploads(array $files): array {
+    $names = $files['name'] ?? [];
+    $sizes = $files['size'] ?? [];
+    $errors = $files['error'] ?? [];
+    if (!is_array($names)) {
+        return [];
+    }
+    $violations = [];
+    $count = count($names);
+    for ($i = 0; $i < $count; $i++) {
+        $err = (int)($errors[$i] ?? UPLOAD_ERR_OK);
+        if ($err === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        $display = trim((string)($names[$i] ?? ''));
+        if ($display === '') {
+            $display = 'image #' . ($i + 1);
+        }
+        if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) {
+            $violations[] = $display;
+            continue;
+        }
+        $size = (int)($sizes[$i] ?? 0);
+        if ($size > MAX_UPLOAD_BYTES) {
+            $violations[] = $display;
+        }
+    }
+    return $violations;
+}
+
+/**
+ * @param array<string,mixed> $files
+ */
+function enforceUploadLimit(array $files, string $action): void {
+    $violations = collectOversizedUploads($files);
+    if (!empty($violations)) {
+        respond(400, [
+            'status' => 'error',
+            'handledAction' => $action,
+            'message' => '以下圖片超過 ' . MAX_UPLOAD_LABEL . '：' . implode('、', $violations),
+        ]);
+    }
 }
 
 function sanitize_terrain_animations(array $animations, array $imageLookup): array {
@@ -136,31 +240,36 @@ function sanitize_terrain_animations(array $animations, array $imageLookup): arr
     return array_values($result);
 }
 
-$data   = loadData($jsonPath);
-$method = $_SERVER['REQUEST_METHOD'];
+try {
+    $data   = loadData($jsonPath);
+    $method = $_SERVER['REQUEST_METHOD'];
 
-if ($method === 'GET') {
-    // GET 永遠成功（只要能讀），檔案不存在則回空結構
-    respond(200, ['status'=>'ok','terrains'=>$data['terrains'],'metadata'=>$data['metadata']]);
-}
+    if ($method === 'GET') {
+        // GET 永遠成功（只要能讀），檔案不存在則回空結構
+        respond(200, ['status'=>'ok','terrains'=>$data['terrains'],'metadata'=>$data['metadata']]);
+    }
 
-if ($method !== 'POST') {
-    respond(405, ['status'=>'error','message'=>'Method not allowed']);
-}
+    if ($method !== 'POST') {
+        respond(405, ['status'=>'error','message'=>'Method not allowed']);
+    }
 
-$action = $_POST['action'] ?? 'create';
+    $action = $_POST['action'] ?? 'create';
 
-// POST 只確保資料夾存在，不先做「檔案必須可寫」的致命檢查
-ensureDirectory($baseDir);
+    // POST 只確保資料夾存在，不先做「檔案必須可寫」的致命檢查
+    ensureDirectory($baseDir);
 
-switch ($action) {
-    case 'create': {
-        $name = trim($_POST['name'] ?? '');
-        if ($name === '') respond(400, ['status'=>'error','handledAction'=>'create','message'=>'缺少地形名稱']);
-        $tag  = trim($_POST['tag'] ?? '');
-        $id   = slugify($name) . '_' . substr(sha1((string) microtime(true)), 0, 6);
+    switch ($action) {
+        case 'create': {
+            $name = trim($_POST['name'] ?? '');
+            if ($name === '') respond(400, ['status'=>'error','handledAction'=>'create','message'=>'缺少地形名稱']);
+            $tag  = trim($_POST['tag'] ?? '');
+            $id   = slugify($name) . '_' . substr(sha1((string) microtime(true)), 0, 6);
 
-        $terrainDir = $baseDir . '/' . $id;
+            $terrainDir = $baseDir . '/' . $id;
+        $uploads = $_FILES['images'] ?? null;
+        if (is_array($uploads)) {
+            enforceUploadLimit($uploads, 'create');
+        }
         ensureDirectory($terrainDir);
 
         $images = [];
@@ -182,7 +291,7 @@ switch ($action) {
                     'filename'=>$filename,
                     'path'=>"Terrains/$id/$filename",
                     'label'=>pathinfo($orig, PATHINFO_FILENAME),
-                    'uploadedAt'=>date(DATE_ATOM)
+                    'uploadedAt'=>gmdate('c')
                 ];
             }
         }
@@ -224,6 +333,10 @@ switch ($action) {
         }
 
         $terrainDir = $baseDir . '/' . $id;
+        $uploads = $_FILES['images'] ?? null;
+        if (is_array($uploads)) {
+            enforceUploadLimit($uploads, 'update');
+        }
         ensureDirectory($terrainDir);
 
         if (!empty($_FILES['images']) && is_array($_FILES['images']['name'])) {
@@ -245,7 +358,7 @@ switch ($action) {
                     'filename'=>$filename,
                     'path'=>"Terrains/$id/$filename",
                     'label'=>pathinfo($orig, PATHINFO_FILENAME),
-                    'uploadedAt'=>date(DATE_ATOM)
+                    'uploadedAt'=>gmdate('c')
                 ];
             }
         }
@@ -394,4 +507,11 @@ switch ($action) {
 
     default:
         respond(400, ['status'=>'error','handledAction'=>$action,'message'=>'未知的操作']);
+    }
+} catch (TerrainApiResponse $response) {
+    emit_response($response->statusCode, $response->payload);
+    if (defined('TERRAIN_API_CAPTURE_RESPONSE') && TERRAIN_API_CAPTURE_RESPONSE === true) {
+        return;
+    }
+    exit;
 }
